@@ -7,6 +7,7 @@ class CarTracker
 {
 public:
     CarTracker* getInstence(const char* configFilePath="");
+    ~CarTracker();
     std::vector<Prediction> getLogo(const cv::Mat &img,int top_k);
     std::vector<Prediction> getShape(const cv::Mat &img,int top_k);
     std::vector<Prediction> getColor(const cv::Mat &img,int top_k);
