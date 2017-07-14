@@ -1,7 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include <windows.h>
 #include <string>
 #include <opencv2/core/core.hpp>
 #include<opencv2/highgui/highgui.hpp>
@@ -17,6 +16,8 @@
 #include <vector>
 #include <math.h>
 #include "ml.h"
+#include "caffe/caffe.hpp"
+#include "iniutil.h"
 using namespace cv;
 using namespace std;
 #endif // COMMON_H
