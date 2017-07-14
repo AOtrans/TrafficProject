@@ -1,0 +1,5 @@
+0 Coach
+1 Truck
+2 car
+3 mpv
+4 suv

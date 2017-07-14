@@ -66,7 +66,7 @@ string carTrack(string fileName,string logo,string shape,string color,string pla
         return "";
     }
 
-    string outputVideoName = "./output_12.avi";
+    string outputVideoName = "./output_lkj_local.avi";
     VideoWriter writer;
 
     int frameRate = 25;
