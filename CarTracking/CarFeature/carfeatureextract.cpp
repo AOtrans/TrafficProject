@@ -1,6 +1,6 @@
 #include "carfeatureextract.h"
 
-CarFeatureExtract::CarFeatureExtract(const char *configFilePath, const char *TagName):classifier(NULL)
+CarFeatureExtract::CarFeatureExtract(const char *configFilePath, const char *tagName):classifier(NULL)
 {
     IniUtil util;
     if(util.OpenFile(configFilePath,"r")!=INI_SUCCESS)
@@ -9,11 +9,11 @@ CarFeatureExtract::CarFeatureExtract(const char *configFilePath, const char *Tag
     }
     else
     {
-        string model_file   = string(util.GetStr(TagName,"modelFilePath"));
-        string trained_file = string(util.GetStr(TagName,"trainedFilePath"));
-        string mean_file    = string(util.GetStr(TagName,"meanFilePath"));
-        string mean_value    = string(util.GetStr(TagName,"meanValue"));
-        string label_file   = string(util.GetStr(TagName,"labelFilePath"));;
+        string model_file   = string(util.GetStr(tagName,"modelFilePath"));
+        string trained_file = string(util.GetStr(tagName,"trainedFilePath"));
+        string mean_file    = string(util.GetStr(tagName,"meanFilePath"));
+        string mean_value    = string(util.GetStr(tagName,"meanValue"));
+        string label_file   = string(util.GetStr(tagName,"labelFilePath"));;
         classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
         util.CloseFile();
     }
@@ -103,9 +103,9 @@ std::vector<Prediction> CarFeatureExtract::singleImagePathCarFeatureExtract(cons
 }
 
 vector<std::vector<Prediction> > CarFeatureExtract::imagePathsCarFeatureExtract(const vector<const char*> &imageFilePaths, int top_k) {
+    vector<std::vector<Prediction>> res;
     if(classifier!=NULL)
     {
-        vector<string> res;
         for(vector<const char*>::const_iterator it=imageFilePaths.cbegin();it!=imageFilePaths.cend();it++)
         {
             std::cout << "---------- Prediction for "
@@ -114,19 +114,18 @@ vector<std::vector<Prediction> > CarFeatureExtract::imagePathsCarFeatureExtract(
             cv::Mat img=cv::imread(imageFilePath);
             res.push_back(classifier->Classify(img,top_k));
         }
-        return res;
     }
     else
     {
         std::cout<<"please reInit classifier first"<<std::endl;
-        return vector<string>();
     }
+    return res;
 }
 
 vector<std::vector<Prediction> > CarFeatureExtract::imagesCarFeatureExtract(const vector<cv::Mat> &images, int top_k) {
+    vector<std::vector<Prediction>> res;
     if(classifier!=NULL)
     {
-        vector<string> res;
         int num=0;
         for(vector<cv::Mat>::const_iterator it=images.cbegin();it!=images.cend();it++)
         {
@@ -136,11 +135,10 @@ vector<std::vector<Prediction> > CarFeatureExtract::imagesCarFeatureExtract(cons
             res.push_back(classifier->Classify(img,top_k));
             num++;
         }
-        return res;
     }
     else
     {
         std::cout<<"please reInit classifier first"<<std::endl;
-        return vector<string>();
     }
+    return res;
 }

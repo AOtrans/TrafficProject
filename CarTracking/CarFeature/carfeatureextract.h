@@ -8,7 +8,7 @@
 class CarFeatureExtract
 {
 public:
-    CarFeatureExtract(const char* configFilePath,const char* TagName);
+    CarFeatureExtract(const char* configFilePath,const char* tagName);
     CarFeatureExtract();
     ~CarFeatureExtract();
     bool reInit(const char* configFilePath,const char* TagName);
