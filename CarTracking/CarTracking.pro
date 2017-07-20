@@ -44,7 +44,7 @@ DISTFILES += \
 
 INCLUDEPATH += /usr/local/include/opencv \
                /usr/local/include/opencv2 \
-               /home/zg/traffic/caffe-ssd/include \
+               /home/zg/traffic/caffe-ssd/include
 
 LIBS += -L/usr/local/lib  -L/home/zg/traffic/caffe-ssd/build/lib \
         -lswscale -lboost_system -lboost_thread -lglog -lgflags -lgomp -lpthread -lcaffe

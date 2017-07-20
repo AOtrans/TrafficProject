@@ -106,6 +106,9 @@ void MainWindow::dosubsubDir(QString prefix,int label, int label2, QMap<QString,
                 {
                     nameMap.insert(prefix+"_"+info.fileName(),nameMap.size());
                 }
+                QDir sdwDir(info.filePath()+"/detail");
+                if(sdwDir.exists())
+                    sdwDir.removeRecursively();
                 QDir subsubsubDir(info.filePath()+"/shape");
                 if(ifDo)
                 {
@@ -202,13 +205,13 @@ void MainWindow::on_pushButton_4_clicked()
 
 void MainWindow::on_pushButton_5_clicked()
 {
-    bool doit=false;
+    bool doit=true;
     bool dosub=false;
-    bool dosubsub=true;
+    bool dosubsub=false;
     QMap<QString,int> shapeMap;
     QMap<QString,int> typeMap;
     QMap<QString,int> nameMap;
-    QFile file("all/multiLabel.txt");
+    QFile file("./multiLabel.txt");
     file.open(QIODevice::ReadWrite);
     QTextStream ts(&file);
     QFileDialog dialog;
@@ -280,7 +283,9 @@ void MainWindow::doMultiTxt(QString prefix,int label1,int label2,int label3,QTex
     QFileInfoList ls=subsubsubDir.entryInfoList(filter);
     foreach(QFileInfo info,ls)
     {
-        ts<<info.filePath()<<((label1==-1)?QString(""):(" "+QString::number(label1)))<<((label2==-1)?"":(" "+QString::number(label2)))<<((label3==-1)?"":(" "+QString::number(label3)))<<"\n";
+        cv::Mat img = cv::imread(info.filePath().toStdString());
+       ts<<info.filePath()<<" 1 0 0 "<<img.cols<<" "<<img.rows<<"\n";
+        //ts<<info.filePath()<<((label1==-1)?QString(""):(" "+QString::number(label1)))<<((label2==-1)?"":(" "+QString::number(label2)))<<((label3==-1)?"":(" "+QString::number(label3)))<<"\n";
     }
 }
 
@@ -354,5 +359,35 @@ void MainWindow::on_pbFileTxt_clicked()
     qDebug()<<"-------------------";
     for(int i=0;i<10;i++)
         qDebug()<<b[i];
+    qDebug()<<"ok";
+}
+
+void MainWindow::on_pushButton_6_clicked()
+{
+    QFile file1("./train.txt");
+    QFile file2("./test.txt");
+    qDebug()<<file1.open(QIODevice::ReadWrite);
+    qDebug()<<file2.open(QIODevice::ReadWrite);
+    QTextStream ts1(&file1);
+    QTextStream ts2(&file2);
+    QVector<QString> dirList;
+    dirList<<"/home/zg/1T/imgs/0_bus"<<"/home/zg/1T/imgs/1_truck"<<"/home/zg/1T/imgs/2_sedan"<<"/home/zg/1T/imgs/3_suv"<<"/home/zg/1T/imgs/4_mpv"<<"/home/zg/1T/imgs/5_hatchback" \
+          <<"/home/zg/1T/imgs/6_pickup"<<"/home/zg/1T/imgs/7_others";
+    for(int i=0;i<dirList.size();i++)
+    {
+        QDir dir(dirList.at(i));
+        QStringList filter;
+        filter<<"*.jpg"<<"*.png"<<"*.jpeg";
+        QFileInfoList filelists= dir.entryInfoList(filter,QDir::Files);
+        int count=0;
+        foreach(QFileInfo info,filelists)
+        {
+            if((count++)==10000)
+                break;
+            ts1<<info.filePath()<<" "<<i<<"\n";
+        }
+    }
+    file1.close();
+    file2.close();
     qDebug()<<"ok";
 }

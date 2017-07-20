@@ -7,14 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>311</width>
-    <height>204</height>
+    <height>310</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,3,0,0,0,0,0">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,3,0,0,0,0,0,0">
     <property name="spacing">
      <number>2</number>
     </property>
@@ -103,6 +103,13 @@
       </property>
      </widget>
     </item>
+    <item>
+     <widget class="QPushButton" name="pushButton_6">
+      <property name="text">
+       <string>singleDir</string>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -111,7 +118,7 @@
      <x>0</x>
      <y>0</y>
      <width>311</width>
-     <height>17</height>
+     <height>23</height>
     </rect>
    </property>
   </widget>

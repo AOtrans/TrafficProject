@@ -1,7 +1,6 @@
 #ifndef CARMODELDICT_H
 #define CARMODELDICT_H
 
-#define CPU_ONLY//remove if you have cuda configure
 
 #include "iniutil.h"
 #include <caffe/caffe.hpp>

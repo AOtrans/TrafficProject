@@ -3,12 +3,7 @@ CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-INCLUDEPATH+=D:/Qt/opencvOnUse/include/opencv  \
-             D:/Qt/opencvOnUse/include/opencv2 \
-             D:/Qt/opencvOnUse/include
-INCLUDEPATH+=D:/Qt/Qt5.7.0/Boost1.62.0/include
-LIBS += D:/Qt/Qt5.7.0/Boost1.62.0/lib/libboost_*.a
-LIBS += D:/Qt/opencvOnUse/lib/libopencv_*.a
+
 
 SOURCES += \
     DataAugmentation.cpp \
@@ -24,3 +19,10 @@ HEADERS += \
     DataAugmentation.h \
     RandomRotation.h \
     Util.h
+
+INCLUDEPATH += /usr/local/include/opencv \
+               /usr/local/include/opencv2 \
+
+LIBS += -L/usr/local/lib  -L/home/zg/traffic/caffe-ssd/build/lib \
+        -lopencv_highgui -lopencv_core -lopencv_imgproc \
+        -lswscale -lboost_system -lboost_thread -lglog -lgflags -lgomp -lpthread -lcaffe -lboost_program_options -lboost_filesystem

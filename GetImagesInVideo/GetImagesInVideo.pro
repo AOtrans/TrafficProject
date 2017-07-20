@@ -11,15 +11,26 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = GetImagesInVideo
 TEMPLATE = app
 
-INCLUDEPATH+=D:\Qt\opencvOnUse\include\opencv  \
-             D:\Qt\opencvOnUse\include\opencv2 \
-             D:\Qt\opencvOnUse\include
+INCLUDEPATH += /usr/local/include/opencv \
+               /usr/local/include/opencv2 \
+               /home/zg/traffic/caffe-ssd/include \
 
-LIBS += -L D:\Qt\opencvOnUse\lib\libopencv_*.a
+LIBS += -L/usr/local/lib  -L/home/zg/traffic/caffe-ssd/build/lib \
+        -lopencv_highgui -lopencv_core -lopencv_imgproc \
+        -lswscale -lboost_system -lboost_thread -lglog -lgflags -lgomp -lpthread -lcaffe
+
+# cuda
+INCLUDEPATH += /usr/local/cuda/include
+LIBS += -L/usr/local/cuda/lib64
+LIBS += -lcudart -lcublas -lcurand -lcudnn
+
 
 SOURCES += main.cpp\
-        widget.cpp
+        widget.cpp \
+    CarDetect/cardetector.cpp
 
-HEADERS  += widget.h
+HEADERS  += widget.h \
+    CarDetect/cardetector.h \
+    common.h
 
 FORMS    += widget.ui

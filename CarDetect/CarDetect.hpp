@@ -15,6 +15,7 @@
                
 using namespace cv;
 
+using namespace std;
 
 using namespace caffe;
 
@@ -36,7 +37,7 @@ private:
 		std::vector<cv::Mat>* input_channels);
 
 private:
-    shared_ptr<Net<float> > net_;
+    boost::shared_ptr<Net<float> > net_;
 	cv::Size input_geometry_;
 	int num_channels_;
 	cv::Mat mean_;
@@ -91,7 +92,7 @@ std::vector<vector<float> > Detector::Detect(const cv::Mat& img) {
 	for (int i = 0; i < detections.size(); ++i) {
 		const vector<float>& d = detections[i];
 		// 返回格式: [ID, 类别, 置信度, xmin, ymin, xmax, ymax].
-		if (d[1] == 7){
+        if (d[1] == 1){
 			vector<float> result;
 			result.push_back(d[2]);
 			if (d[3] < 0)
