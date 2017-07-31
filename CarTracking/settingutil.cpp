@@ -1,12 +1,19 @@
 #include "settingutil.h"
+#include <QFile>
+#include <QDebug>
 
-SettingUtil::SettingUtil(QString fileName, QString filePath ,QObject *parent)
+SettingUtil::SettingUtil(QString filePath,QObject *parent)
     :QObject(parent)
 {
-    QFile file(fileName);
+    QFile file(filePath);
+    flag=true;
     if(!file.exists())
-        qDebug()<<"error Path "<<fileName;
-    m_setting=new QSettings(fileName,QSettings::IniFormat,this);
+    {
+        flag=false;
+        qDebug()<<"error Path "<<filePath;
+        return;
+    }
+    m_setting=new QSettings(filePath,QSettings::IniFormat,this);
 }
 
 QString SettingUtil::getValue(QString seg, QString key)

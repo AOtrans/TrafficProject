@@ -17,7 +17,8 @@
 #include <math.h>
 #include "ml.h"
 #include <caffe/caffe.hpp>
-#include "iniutil.h"
+#include "settingutil.h"
+extern SettingUtil util;
 using namespace cv;
 using namespace std;
 using namespace caffe;

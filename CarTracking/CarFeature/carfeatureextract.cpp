@@ -1,22 +1,13 @@
 #include "carfeatureextract.h"
 
-CarFeatureExtract::CarFeatureExtract(const char *configFilePath, const char *tagName):classifier(NULL)
-{
-    IniUtil util;
-    if(util.OpenFile(configFilePath,"r")!=INI_SUCCESS)
-    {
-        std::cout<<"openConfigFileError"<<std::endl;
-    }
-    else
-    {
-        string model_file   = string(util.GetStr(tagName,"modelFilePath"));
-        string trained_file = string(util.GetStr(tagName,"trainedFilePath"));
-        string mean_file    = string(util.GetStr(tagName,"meanFilePath"));
-        string mean_value    = string(util.GetStr(tagName,"meanValue"));
-        string label_file   = string(util.GetStr(tagName,"labelFilePath"));;
-        classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
-        util.CloseFile();
-    }
+CarFeatureExtract::CarFeatureExtract(const char *tagName):classifier(NULL)
+{    
+    string model_file   = util.getValue(tagName,"modelFilePath").toStdString();
+    string trained_file = util.getValue(tagName,"trainedFilePath").toStdString();
+    string mean_file    = util.getValue(tagName,"meanFilePath").toStdString();
+    string mean_value   = util.getValue(tagName,"meanValue").toStdString();
+    string label_file   = util.getValue(tagName,"labelFilePath").toStdString();
+    classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
 }
 
 CarFeatureExtract::CarFeatureExtract():classifier(NULL)
@@ -30,27 +21,17 @@ CarFeatureExtract::~CarFeatureExtract()
         delete classifier;
 }
 
-bool CarFeatureExtract::reInit(const char *configFilePath, const char *TagName)
+bool CarFeatureExtract::reInit(const char *tagName)
 {
-    IniUtil util;
-    if(util.OpenFile(configFilePath,"r")!=INI_SUCCESS)
-    {
-        std::cout<<"openConfigFileError"<<std::endl;
-        return false;
-    }
-    else
-    {
-        if(classifier!=NULL)
-            delete classifier;
-        string model_file   = string(util.GetStr(TagName,"modelFilePath"));
-        string trained_file = string(util.GetStr(TagName,"trainedFilePath"));
-        string mean_file    = string(util.GetStr(TagName,"meanFilePath"));
-        string mean_value    = string(util.GetStr(TagName,"meanValue"));
-        string label_file   = string(util.GetStr(TagName,"labelFilePath"));;
-        classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
-        util.CloseFile();
-        return true;
-    }
+    if(classifier!=NULL)
+        delete classifier;
+    string model_file   = util.getValue(tagName,"modelFilePath").toStdString();
+    string trained_file = util.getValue(tagName,"trainedFilePath").toStdString();
+    string mean_file    = util.getValue(tagName,"meanFilePath").toStdString();
+    string mean_value   = util.getValue(tagName,"meanValue").toStdString();
+    string label_file   = util.getValue(tagName,"labelFilePath").toStdString();
+    classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
+    return true;
 }
 /*
 bool CarFeatureDicter::checkImageFormat(cv::Mat &img)

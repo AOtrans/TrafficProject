@@ -1,6 +1,6 @@
-#ifndef COMMON_H
-#define COMMON_H
-#include <unistd.h>
+#ifndef DBCOMMON_H
+#define DBCOMMON_H
+#include "unistd.h"
 #include<QDebug>
 #include<QDomDocument>
 #define DEBUG(s) qDebug()<<"LINE:"<<__LINE__<<"--FUNCTION:"<<__FUNCTION__<<"--Time:"<<QTime::currentTime().toString("－hh:mm:ss.zzz")<<"("<<s<<")";
@@ -17,4 +17,4 @@ namespace dbConfig
     static const QString TryReQueryTimes="tryReQueryTimes";
     static const QString MYSQL="MYSQL";
 }
-#endif // COMMON_H
+#endif // DBCOMMON_H

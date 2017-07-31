@@ -7,7 +7,7 @@ void drawRect(Mat &img,cv::Rect rect,const char *str="")
     cv::rectangle(img,rect,Scalar(255,0,0));
 }
 
-CarTracker::CarTracker(const char *configFilePath):configFilePath(configFilePath)
+CarTracker::CarTracker()
 {
     shapeExtract=nullptr;
     colorExtract=nullptr;
@@ -16,11 +16,11 @@ CarTracker::CarTracker(const char *configFilePath):configFilePath(configFilePath
     carDetector=nullptr;
 }
 
-CarTracker *CarTracker::getInstence(const char *configFilePath)
+CarTracker *CarTracker::getInstence()
 {
-    if(tracker==nullptr&&configFilePath!="")
+    if(tracker==nullptr)
     {
-        tracker=new CarTracker(configFilePath);
+        tracker=new CarTracker();
     }
     return tracker;
 }
@@ -48,7 +48,7 @@ std::vector<Prediction> CarTracker::getLogo(const cv::Mat &img, int top_k)
 {
     std::cout<<"logoExtract init"<<std::endl;
     if(logoExtract==nullptr)
-        logoExtract=new CarFeatureExtract(configFilePath,"CarLogo");
+        logoExtract=new CarFeatureExtract("CarLogo");
     return logoExtract->singleImageCarFeatureExtract(img,top_k);
 }
 
@@ -56,7 +56,7 @@ std::vector<Prediction> CarTracker::getShape(const cv::Mat &img, int top_k)
 {
     std::cout<<"shapeExtract init"<<std::endl;
     if(shapeExtract==nullptr)
-        shapeExtract=new CarFeatureExtract(configFilePath,"CarShape");
+        shapeExtract=new CarFeatureExtract("CarShape");
     return shapeExtract->singleImageCarFeatureExtract(img,top_k);
 }
 
@@ -64,32 +64,21 @@ std::vector<Prediction> CarTracker::getColor(const cv::Mat &img, int top_k)
 {
     std::cout<<"colorExtract init"<<std::endl;
     if(colorExtract==nullptr)
-        colorExtract=new CarFeatureExtract(configFilePath,"CarColor");
+        colorExtract=new CarFeatureExtract("CarColor");
     return colorExtract->singleImageCarFeatureExtract(img,top_k);
 }
 
 string CarTracker::getPlate(const Mat &img)
 {
-    std::cout<<"plateExtract init"<<std::endl;
     if(plateExtract==nullptr)
     {
-        IniUtil util;
-        if(util.OpenFile(configFilePath,"r")!=INI_SUCCESS)
-        {
-            std::cout<<"openConfigFileError"<<std::endl;
-            return "";
-        }
-        else
-        {
-            std::cout<<"detector init"<<std::endl;
-            const char* tagName = "CarPlate";
-            string plateSvmTrainModel = string(util.GetStr(tagName,"PlateSvmTrainModel"));
-            string enTrainModel = string(util.GetStr(tagName,"EnTrainModel"));
-            string chTrainModel = string(util.GetStr(tagName,"ChTrainModel"));
+        std::cout<<"plateExtract init"<<std::endl;
+        const char* tagName = "CarPlate";
+        string plateSvmTrainModel = util.getValue(tagName,"PlateSvmTrainModel").toStdString();
+        string enTrainModel = util.getValue(tagName,"EnTrainModel").toStdString();
+        string chTrainModel = util.getValue(tagName,"ChTrainModel").toStdString();
 
-            plateExtract=new Lprs(plateSvmTrainModel,enTrainModel,chTrainModel);
-            util.CloseFile();
-        }
+        plateExtract=new Lprs(plateSvmTrainModel,enTrainModel,chTrainModel);
     }
     return plateExtract->prosess(img);
 }
@@ -157,25 +146,15 @@ vector<Rect> CarTracker::getCars(Mat &img)
     vector<Rect> results;
     if(carDetector==nullptr)
     {
-        IniUtil util;
-        if(util.OpenFile(configFilePath,"r")!=INI_SUCCESS)
-        {
-            std::cout<<"openConfigFileError"<<std::endl;
-            return results;
-        }
-        else
-        {
-            std::cout<<"detector init"<<std::endl;
-            const char* tagName = "CarDetect";
-            string model_file   = string(util.GetStr(tagName,"modelFilePath"));
-            string trained_file = string(util.GetStr(tagName,"trainedFilePath"));
-            string mean_file    = string(util.GetStr(tagName,"meanFilePath"));
-            string mean_value    = string(util.GetStr(tagName,"meanValue"));
-            confidenceThreshold   = atof(util.GetStr(tagName,"ConfidenceThreshold"));
+        std::cout<<"detector init"<<std::endl;
+        const char* tagName = "CarDetect";
+        string model_file   = util.getValue(tagName,"modelFilePath").toStdString();
+        string trained_file = util.getValue(tagName,"trainedFilePath").toStdString();
+        string mean_file    = util.getValue(tagName,"meanFilePath").toStdString();
+        string mean_value    = util.getValue(tagName,"meanValue").toStdString();
+        confidenceThreshold   = util.getValue(tagName,"ConfidenceThreshold").toFloat();
 
-            carDetector=new Detector(model_file, trained_file, mean_file, mean_value);
-            util.CloseFile();
-        }
+        carDetector=new Detector(model_file, trained_file, mean_file, mean_value);
     }
     int pad=10;
     std::vector<vector<float> > detections = carDetector->Detect(img);

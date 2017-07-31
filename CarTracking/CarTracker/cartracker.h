@@ -8,7 +8,7 @@
 class CarTracker
 {
 public:
-    static CarTracker* getInstence(const char* configFilePath="");
+    static CarTracker* getInstence();
     ~CarTracker();
     std::vector<Prediction> getLogo(const cv::Mat &img,int top_k);
     std::vector<Prediction> getShape(const cv::Mat &img,int top_k);
@@ -19,11 +19,10 @@ public:
 private:
     bool compareShape(std::vector<Prediction> &result,string shape);
     bool compareColor(std::vector<Prediction> &result,string shape);
-    CarTracker(const char* configFilePath);
+    CarTracker();
     CarFeatureExtract *shapeExtract,*colorExtract,*logoExtract;
     Lprs *plateExtract;
     Detector* carDetector;
-    const char* configFilePath;
     static CarTracker* tracker;
     float confidenceThreshold;
 };
