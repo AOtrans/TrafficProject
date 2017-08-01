@@ -18,7 +18,9 @@
 #include "ml.h"
 #include <caffe/caffe.hpp>
 #include "settingutil.h"
+#include "DB/dbmanager.h"
 extern SettingUtil util;
+extern DBManager dbManager;
 using namespace cv;
 using namespace std;
 using namespace caffe;

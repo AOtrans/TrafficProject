@@ -1,5 +1,6 @@
 #include "dbmanager.h"
-
+#include <QMutex>
+QMutex dbMutex;
 DBManager::DBManager(QObject *parent, DBMessage *DBmsg)
     :QObject(parent),m_DBmsg(DBmsg)
 {
@@ -12,14 +13,16 @@ DBManager::DBManager(QObject *parent, SettingUtil *util)
     m_query=nullptr;
     if(util!=nullptr)
     {
-        m_DBmsg=new DBMessage(util->getValue(dbConfig::SegName,dbConfig::DBmsName),
-                              util->getValue(dbConfig::SegName,dbConfig::HostName),
-                              util->getValue(dbConfig::SegName,dbConfig::Port),
-                              util->getValue(dbConfig::SegName,dbConfig::DBName),
-                              util->getValue(dbConfig::SegName,dbConfig::Account),
-                              util->getValue(dbConfig::SegName,dbConfig::Password),
-                              util->getValue(dbConfig::SegName,dbConfig::TryReConnectTimes).toInt(),
-                              util->getValue(dbConfig::SegName,dbConfig::TryReQueryTimes).toInt());
+        qDebug()<<"DBInit";
+        m_DBmsg=new DBMessage(util->getValue("DBConfig","dbmsName"),
+                              util->getValue("DBConfig","hostName"),
+                              util->getValue("DBConfig","port"),
+                              util->getValue("DBConfig","dbName"),
+                              util->getValue("DBConfig","account"),
+                              util->getValue("DBConfig","password"),
+                              util->getValue("DBConfig","tryReConnectTimes").toInt(),
+                              util->getValue("DBConfig","tryReQueryTimes").toInt());
+        qDebug()<<"DBInit done";
     }
 }
 
@@ -172,12 +175,14 @@ bool DBManager::rollback()
 
 bool DBManager::execQuery(QString sql)
 {
+    dbMutex.lock();
     if(!m_db.isOpen())
     {
         if(!tryReOpen())
         {
             DEBUG("Connect Fialed--"+m_db.lastError().text());
             m_errorMsg=m_db.lastError().text();
+            dbMutex.unlock();
             return false;
         }
     }
@@ -185,23 +190,27 @@ bool DBManager::execQuery(QString sql)
         m_query=new QSqlQuery(m_db);
     if(tryExec(sql))
     {
+        dbMutex.unlock();
         return true;
     }
     else
     {
         m_errorMsg=m_query->lastError().text();
+        dbMutex.unlock();
         return false;
     }
 }
 
 bool DBManager::execQuery(QString sql, const QVector<QVariant> &paraList)
 {
+    dbMutex.lock();
     if(!m_db.isOpen())
     {
         if(!tryReOpen())
         {
             DEBUG("Connect Fialed--"+m_db.lastError().text());
             m_errorMsg=m_db.lastError().text();
+            dbMutex.unlock();
             return false;
         }
     }
@@ -209,11 +218,13 @@ bool DBManager::execQuery(QString sql, const QVector<QVariant> &paraList)
         m_query=new QSqlQuery(m_db);
     if(tryExec(sql,paraList))
     {
+        dbMutex.unlock();
         return true;
     }
     else
     {
         m_errorMsg=m_query->lastError().text();
+        dbMutex.unlock();
         return false;
     }
 }

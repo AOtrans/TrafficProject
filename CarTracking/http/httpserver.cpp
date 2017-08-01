@@ -12,6 +12,7 @@ HttpServer::HttpServer(QObject *parent)
     : QObject(parent)
     , m_tcpServer(0)
 {
+    qDebug()<<"httpServer Init";
 #define STATUS_CODE(num, reason) STATUS_CODES.insert(num, reason);
 // {{{
   STATUS_CODE(100, "Continue")
@@ -67,6 +68,7 @@ HttpServer::HttpServer(QObject *parent)
   STATUS_CODE(509, "Bandwidth Limit Exceeded")
   STATUS_CODE(510, "Not Extended")                // RFC 2774
 // }}}
+          qDebug()<<"httpServer Init done";
 }
 
 HttpServer::~HttpServer()
@@ -102,18 +104,36 @@ bool HttpServer::listen(quint16 port)
 void HttpServer::onRequest(HttpRequest* req, HttpResponse* resp)
 {
     qDebug()<<"---http in---";
+
     QString path = req->path();
+    qDebug()<<"path:"<<path;
     string result;
 
     QStringList list = path.mid(1).split("/");
-    std::cout << path.toStdString()<< std::endl;
 
-    if(list.at(0) == "Plate")
+    QStringList paras = list.at(0).split("_");
+    QString videoPath = list.at(1);
+
+    QString tag = paras.at(0);
+    if(tag == "video")
     {
-        QString t = list.at(1);
-        qDebug()<<t.replace("_","/").toStdString().c_str();
-        result = getPlate(t.replace("_","/").toStdString().c_str());
-        qDebug()<<result.c_str();
+        carTrack(videoPath, paras.at(1), paras.at(2), paras.at(3));
+    }
+    else if(tag == "moto")
+    {
+        motoTrack(videoPath, paras.at(1), paras.at(2), paras.at(3), paras.at(4));
+    }
+    else if(tag == "truck")
+    {
+        truckDetect(videoPath, paras.at(1), paras.at(2));
+    }
+    else if(tag == "taxi")
+    {
+        taxiDetect(videoPath, paras.at(1), paras.at(2));
+    }
+    else if(tag == "areacar")
+    {
+        areaCarDetect(videoPath, paras.at(1), paras.at(2), paras.at(3));
     }
     else
     {

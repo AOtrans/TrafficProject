@@ -6,15 +6,15 @@
 #define DEBUG(s) qDebug()<<"LINE:"<<__LINE__<<"--FUNCTION:"<<__FUNCTION__<<"--Time:"<<QTime::currentTime().toString("－hh:mm:ss.zzz")<<"("<<s<<")";
 namespace dbConfig
 {
-    static const QString SegName="DBConfig";
-    static const QString DBmsName="dbmsName";
-    static const QString HostName="hostName";
-    static const QString Port="port";
-    static const QString DBName="dbName";
-    static const QString Account="account";
-    static const QString Password="password";
-    static const QString TryReConnectTimes="tryReConnectTimes";
-    static const QString TryReQueryTimes="tryReQueryTimes";
-    static const QString MYSQL="MYSQL";
+    const QString SegName="DBConfig";
+    const QString DBmsName="dbmsName";
+    const QString HostName="hostName";
+    const QString Port="port";
+    const QString DBName="dbName";
+    const QString Account="account";
+    const QString Password="password";
+    const QString TryReConnectTimes="tryReConnectTimes";
+    const QString TryReQueryTimes="tryReQueryTimes";
+    const QString MYSQL="MYSQL";
 }
 #endif // DBCOMMON_H
