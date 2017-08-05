@@ -2,35 +2,39 @@
 
 CarFeatureExtract::CarFeatureExtract(const char *tagName):classifier(NULL)
 {    
-    string model_file   = util.getValue(tagName,"modelFilePath").toStdString();
-    string trained_file = util.getValue(tagName,"trainedFilePath").toStdString();
-    string mean_file    = util.getValue(tagName,"meanFilePath").toStdString();
-    string mean_value   = util.getValue(tagName,"meanValue").toStdString();
-    string label_file   = util.getValue(tagName,"labelFilePath").toStdString();
-    classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
+    string model_file   = util.getValue(tagName, "modelFilePath").toStdString();
+    string trained_file = util.getValue(tagName, "trainedFilePath").toStdString();
+    string mean_file    = util.getValue(tagName, "meanFilePath").toStdString();
+    string mean_value   = util.getValue(tagName, "meanValue").toStdString();
+    string label_file   = util.getValue(tagName, "labelFilePath").toStdString();
+
+    classifier = new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
 }
 
 CarFeatureExtract::CarFeatureExtract():classifier(NULL)
 {
-    std::cout<<"create dicker with no init"<<std::endl;
+    qDebug() << "create Extractor with no init";
 }
 
 CarFeatureExtract::~CarFeatureExtract()
 {
-    if(classifier!=NULL)
+    if(classifier != NULL)
         delete classifier;
 }
 
 bool CarFeatureExtract::reInit(const char *tagName)
 {
-    if(classifier!=NULL)
+    if(classifier != NULL)
         delete classifier;
-    string model_file   = util.getValue(tagName,"modelFilePath").toStdString();
-    string trained_file = util.getValue(tagName,"trainedFilePath").toStdString();
-    string mean_file    = util.getValue(tagName,"meanFilePath").toStdString();
-    string mean_value   = util.getValue(tagName,"meanValue").toStdString();
-    string label_file   = util.getValue(tagName,"labelFilePath").toStdString();
-    classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
+
+    string model_file   = util.getValue(tagName, "modelFilePath").toStdString();
+    string trained_file = util.getValue(tagName, "trainedFilePath").toStdString();
+    string mean_file    = util.getValue(tagName, "meanFilePath").toStdString();
+    string mean_value   = util.getValue(tagName, "meanValue").toStdString();
+    string label_file   = util.getValue(tagName, "labelFilePath").toStdString();
+
+    classifier = new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
+
     return true;
 }
 /*
@@ -55,71 +59,78 @@ bool CarFeatureDicter::checkImageFormat(cv::Mat &img)
 }
 */
 std::vector<Prediction> CarFeatureExtract::singleImageCarFeatureExtract(cv::Mat img, int top_k) {
-    if(classifier!=NULL)
+    if(classifier != NULL)
     {
-        std::cout << "---------- Prediction for "
-                  << "inputImage" << " ----------" << std::endl;
-        return classifier->Classify(img,top_k);
+        qDebug() << "---------- Prediction for " << "inputImage" << " ----------";
+
+        return classifier->Classify(img, top_k);
     }
     else
     {
-        std::cout<<"please reInit classifier first"<<std::endl;
+        qDebug() << "please reInit classifier first";
+
         return std::vector<Prediction>();
     }
 }
 
-std::vector<Prediction> CarFeatureExtract::singleImagePathCarFeatureExtract(const char* imageFilePath, int top_k) {
-    if(classifier!=NULL)
+std::vector<Prediction> CarFeatureExtract::singleImagePathCarFeatureExtract(const char *imageFilePath, int top_k) {
+    if(classifier != NULL)
     {
-        cv::Mat img=cv::imread(imageFilePath);
-        std::cout << "---------- Prediction for "
-                  << string(imageFilePath) << " ----------" << std::endl;
-        return classifier->Classify(img,top_k);
+        cv::Mat img = cv::imread(imageFilePath);
+        qDebug() << "---------- Prediction for " << imageFilePath << " ----------";
+
+        return classifier->Classify(img, top_k);
     }
     else
     {
-        std::cout<<"please reInit classifier first"<<std::endl;
+        qDebug() << "please reInit classifier first";
+
         return std::vector<Prediction>();
     }
 }
 
 vector<std::vector<Prediction> > CarFeatureExtract::imagePathsCarFeatureExtract(const vector<const char*> &imageFilePaths, int top_k) {
-    vector<std::vector<Prediction>> res;
-    if(classifier!=NULL)
+    vector<std::vector<Prediction> > res;
+
+    if(classifier != NULL)
     {
-        for(vector<const char*>::const_iterator it=imageFilePaths.cbegin();it!=imageFilePaths.cend();it++)
+        for(vector<const char*>::const_iterator it = imageFilePaths.cbegin(); it != imageFilePaths.cend(); it++)
         {
-            std::cout << "---------- Prediction for "
-                      << string(*it) << " ----------" << std::endl;
-            string imageFilePath=string(*it);
-            cv::Mat img=cv::imread(imageFilePath);
-            res.push_back(classifier->Classify(img,top_k));
+            qDebug() << "---------- Prediction for " << *it << " ----------";
+
+            string imageFilePath = string(*it);
+            cv::Mat img = cv::imread(imageFilePath);
+
+            res.push_back(classifier->Classify(img, top_k));
         }
     }
     else
     {
-        std::cout<<"please reInit classifier first"<<std::endl;
+        qDebug() << "please reInit classifier first";
     }
+
     return res;
 }
 
 vector<std::vector<Prediction> > CarFeatureExtract::imagesCarFeatureExtract(const vector<cv::Mat> &images, int top_k) {
-    vector<std::vector<Prediction>> res;
-    if(classifier!=NULL)
+    vector<std::vector<Prediction> > res;
+
+    if(classifier != NULL)
     {
         int num=0;
-        for(vector<cv::Mat>::const_iterator it=images.cbegin();it!=images.cend();it++)
+        for(vector<cv::Mat>::const_iterator it = images.cbegin(); it != images.cend(); it++)
         {
-            std::cout << "---------- Prediction for "
-                      << "inputImage " <<num<< " ----------" << std::endl;
+            qDebug() << "---------- Prediction for " << "inputImage " << num << " ----------";
+
             cv::Mat img=*it;
-            res.push_back(classifier->Classify(img,top_k));
+            res.push_back(classifier->Classify(img, top_k));
             num++;
         }
     }
     else
     {
-        std::cout<<"please reInit classifier first"<<std::endl;
+        qDebug() << "please reInit classifier first";
     }
+
     return res;
 }

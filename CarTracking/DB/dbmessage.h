@@ -8,7 +8,15 @@ class DBMessage
 {
 public:
     DBMessage();
-    DBMessage(QString dbmsName,QString hostName,QString port,QString dbName,QString account,QString password,int tryReConnectTimes=5,int tryReQueryTimes=3);
+    DBMessage(QString dbmsName,
+              QString hostName,
+              QString port,
+              QString dbName,
+              QString account,
+              QString password,
+              int tryReConnectTimes=5,
+              int tryReQueryTimes=3);
+
     QString getDbmsName() const;
     void setDbmsName(const QString &value);
 

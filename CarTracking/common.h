@@ -19,9 +19,13 @@
 #include <caffe/caffe.hpp>
 #include "settingutil.h"
 #include "DB/dbmanager.h"
+#include <QDebug>
+
 extern SettingUtil util;
 extern DBManager dbManager;
+
 using namespace cv;
 using namespace std;
 using namespace caffe;
+
 #endif // COMMON_H

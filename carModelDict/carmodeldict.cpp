@@ -128,14 +128,14 @@ void Classifier::SetMean(const string& mean_file,const string& mean_value) {
     cv::Scalar channel_mean;
     if (!mean_file.empty()) {
         CHECK(mean_value.empty()) <<
-        "Cannot specify mean_file and mean_value at the same time";
+                                     "Cannot specify mean_file and mean_value at the same time";
         BlobProto blob_proto;
         ReadProtoFromBinaryFileOrDie(mean_file.c_str(), &blob_proto);
 
         Blob<float> mean_blob;
         mean_blob.FromProto(blob_proto);
         CHECK_EQ(mean_blob.channels(), num_channels_)
-        << "Number of channels of mean file doesn't match input layer.";
+                << "Number of channels of mean file doesn't match input layer.";
 
         std::vector<cv::Mat> channels;
         float* data = mean_blob.mutable_cpu_data();
@@ -153,7 +153,7 @@ void Classifier::SetMean(const string& mean_file,const string& mean_value) {
     }
     if (!mean_value.empty()) {
         CHECK(mean_file.empty()) <<
-        "Cannot specify mean_file and mean_value at the same time";
+                                    "Cannot specify mean_file and mean_value at the same time";
         stringstream ss(mean_value);
         vector<float> values;
         string item;
@@ -162,7 +162,7 @@ void Classifier::SetMean(const string& mean_file,const string& mean_value) {
             values.push_back(value);
         }
         CHECK(values.size() == 1 || values.size() == num_channels_) <<
-         "Specify either 1 mean_value or as many as channels: " << num_channels_;
+                                                                       "Specify either 1 mean_value or as many as channels: " << num_channels_;
 
         std::vector<cv::Mat> channels;
         for (int i = 0; i < num_channels_; ++i) {
@@ -240,9 +240,9 @@ void Classifier::Preprocess(const cv::Mat& img,
 
     cv::Mat sample_float;
     if (num_channels_ == 3)
-        sample_resized.convertTo(sample_float, CV_32FC3);
+        sample_resized.convertTo(sample_float, CV_32FC3, 1/255.0);
     else
-        sample_resized.convertTo(sample_float, CV_32FC1);
+        sample_resized.convertTo(sample_float, CV_32FC1, 1/255.0);
 
     cv::Mat sample_normalized;
     cv::subtract(sample_float, mean_, sample_normalized);
@@ -478,15 +478,25 @@ vector<string> CarModelDict::singleImagesCarModelDict(const vector<cv::Mat> &ima
     }
 }
 
+#include<QDir>
 
 int main(int argc,char** argv)
 {
     ::google::InitGoogleLogging(argv[0]);//use only once
-    CarModelDict dicter("./config.ini");//read config file and init
+    CarModelDict dicter("/home/zg/traffic/QtProject/carModelDict/config.ini");//read config file and init
 
-    cv::Mat image1=cv::imread("cars/test.png");
+    QDir dir("/home/zg/1T/samples/0");
+    QFileInfoList ls = dir.entryInfoList(QStringList(),QDir::Files);
+    foreach(QFileInfo info,ls)
+    {
+        cout<<info.filePath().toStdString().c_str()<<endl;
+        cv::Mat image1=cv::imread(info.filePath().toStdString().c_str());
+        cv::imshow("dd", image1);
 
-    std::cout<<"****test single Mat****"<<std::endl;
-    std::cout<<dicter.singleImageCarModelDict(image1)<<std::endl;
+        cv::moveWindow("dd",1000,1000);
+        std::cout<<"****test single Mat****"<<std::endl;
+        std::cout<<dicter.singleImageCarModelDict(image1)<<std::endl;
+        cv::waitKey();
+    }
 
 }
