@@ -29,6 +29,8 @@ public:
 
     pair<cv::Point2f,cv::Point2f> getPoints(float a1, float a2, float b1, float b2);
     bool inRect(cv::Rect rect, vector<pair<cv::Point2f, cv::Point2f> > rectAreas, int cols, int rows);
+    bool compareCOSLike(float *t1, float *t2, int count);
+    float getSiftFeature(Mat &img);
 private:
     bool compareShape(std::vector<Prediction> &result, string shape);
     bool compareColor(std::vector<Prediction> &result, string shape);
