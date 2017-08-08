@@ -5,7 +5,7 @@
 #include <QFileDialog>
 #include <QWidget>
 #include <QTextStream>
-#include "opencv2/opencv.hpp"
+#include "CarDetect/cardetector.h"
 
 namespace Ui {
 class Widget;
@@ -18,7 +18,8 @@ class Widget : public QWidget
 public:
     explicit Widget(QWidget *parent = 0);
     ~Widget();
-
+    vector<Rect> getCars(Mat &img);
+    bool compareRect(Rect r,Rect rOther);
 private slots:
     void on_pbChooseFile_clicked();
 
@@ -30,6 +31,9 @@ private:
     QString currentDir;
     QFile successFile;
     QFile failFile;
+    Detector *carDetector;
+    float confidenceThreshold;
+    vector<Rect> matchList;
 };
 
 #endif // WIDGET_H

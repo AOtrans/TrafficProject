@@ -4,6 +4,16 @@
 using namespace caffe;  // NOLINT(build/namespaces)
 using namespace std;
 
+cv::Size getSize(const cv::Mat& img)
+{
+    int cols = img.cols;
+    int rows = img.rows;
+    if(cols>rows)
+        return cv::Size(int(299.0*cols/rows),299);
+    else
+        return cv::Size(299,int(299.0*rows/cols));
+}
+
 /* Pair (label, confidence) representing a prediction. */
 typedef std::pair<string, float> Prediction;
 
@@ -12,12 +22,13 @@ public:
     Classifier(const string& model_file,
                const string& trained_file,
                const string& mean_file,
+               const string& mean_value,
                const string& label_file);
 
     std::vector<Prediction> Classify(const cv::Mat& img, int N = 5);
 
 private:
-    void SetMean(const string& mean_file);
+    void SetMean(const string& mean_file,const string& mean_value);
 
     std::vector<float> Predict(const cv::Mat& img);
 
@@ -37,6 +48,7 @@ private:
 Classifier::Classifier(const string& model_file,
                        const string& trained_file,
                        const string& mean_file,
+                       const string& mean_value,
                        const string& label_file) {
 #ifdef CPU_ONLY
     Caffe::set_mode(Caffe::CPU);
@@ -51,6 +63,10 @@ Classifier::Classifier(const string& model_file,
     CHECK_EQ(net_->num_inputs(), 1) << "Network should have exactly one input.";
     CHECK_EQ(net_->num_outputs(), 1) << "Network should have exactly one output.";
 
+
+#ifdef MULTISCALE
+    num_channels_=3;
+#else
     Blob<float>* input_layer = net_->input_blobs()[0];
     num_channels_ = input_layer->channels();
     CHECK(num_channels_ == 3 || num_channels_ == 1)
@@ -58,7 +74,9 @@ Classifier::Classifier(const string& model_file,
     input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
 
     /* Load the binaryproto mean file. */
-    SetMean(mean_file);
+    SetMean(mean_file,mean_value);
+#endif
+
 
     /* Load labels. */
     std::ifstream labels(label_file.c_str());
@@ -106,37 +124,61 @@ std::vector<Prediction> Classifier::Classify(const cv::Mat& img, int N) {
 }
 
 /* Load the mean file in binaryproto format. */
-void Classifier::SetMean(const string& mean_file) {
-    BlobProto blob_proto;
-    ReadProtoFromBinaryFileOrDie(mean_file.c_str(), &blob_proto);
+void Classifier::SetMean(const string& mean_file,const string& mean_value) {
+    cv::Scalar channel_mean;
+    if (!mean_file.empty()) {
+        CHECK(mean_value.empty()) <<
+                                     "Cannot specify mean_file and mean_value at the same time";
+        BlobProto blob_proto;
+        ReadProtoFromBinaryFileOrDie(mean_file.c_str(), &blob_proto);
 
-    /* Convert from BlobProto to Blob<float> */
-    Blob<float> mean_blob;
-    mean_blob.FromProto(blob_proto);
-    CHECK_EQ(mean_blob.channels(), num_channels_)
-            << "Number of channels of mean file doesn't match input layer.";
+        Blob<float> mean_blob;
+        mean_blob.FromProto(blob_proto);
+        CHECK_EQ(mean_blob.channels(), num_channels_)
+                << "Number of channels of mean file doesn't match input layer.";
 
-    /* The format of the mean file is planar 32-bit float BGR or grayscale. */
-    std::vector<cv::Mat> channels;
-    float* data = mean_blob.mutable_cpu_data();
-    for (int i = 0; i < num_channels_; ++i) {
-        /* Extract an individual channel. */
-        cv::Mat channel(mean_blob.height(), mean_blob.width(), CV_32FC1, data);
-        channels.push_back(channel);
-        data += mean_blob.height() * mean_blob.width();
+        std::vector<cv::Mat> channels;
+        float* data = mean_blob.mutable_cpu_data();
+        for (int i = 0; i < num_channels_; ++i) {
+            cv::Mat channel(mean_blob.height(), mean_blob.width(), CV_32FC1, data);
+            channels.push_back(channel);
+            data += mean_blob.height() * mean_blob.width();
+        }
+
+        cv::Mat mean;
+        cv::merge(channels, mean);
+
+        channel_mean = cv::mean(mean);
+        mean_ = cv::Mat(input_geometry_, mean.type(), channel_mean);
     }
+    if (!mean_value.empty()) {
+        CHECK(mean_file.empty()) <<
+                                    "Cannot specify mean_file and mean_value at the same time";
+        stringstream ss(mean_value);
+        vector<float> values;
+        string item;
+        while (getline(ss, item, ',')) {
+            float value = std::atof(item.c_str());
+            values.push_back(value);
+        }
+        CHECK(values.size() == 1 || values.size() == num_channels_) <<
+                                                                       "Specify either 1 mean_value or as many as channels: " << num_channels_;
 
-    /* Merge the separate channels into a single image. */
-    cv::Mat mean;
-    cv::merge(channels, mean);
-
-    /* Compute the global mean pixel value and create a mean image
-   * filled with this value. */
-    cv::Scalar channel_mean = cv::mean(mean);
-    mean_ = cv::Mat(input_geometry_, mean.type(), channel_mean);
+        std::vector<cv::Mat> channels;
+        for (int i = 0; i < num_channels_; ++i) {
+            cv::Mat channel(input_geometry_.height, input_geometry_.width, CV_32FC1,
+                            cv::Scalar(values[i]));
+            channels.push_back(channel);
+        }
+        cv::merge(channels, mean_);
+    }
 }
 
 std::vector<float> Classifier::Predict(const cv::Mat& img) {
+#ifdef MULTISCALE
+    input_geometry_=getSize(img);
+    SetMean("","104,117,123");
+#endif
     Blob<float>* input_layer = net_->input_blobs()[0];
     input_layer->Reshape(1, num_channels_,
                          input_geometry_.height, input_geometry_.width);
@@ -198,9 +240,9 @@ void Classifier::Preprocess(const cv::Mat& img,
 
     cv::Mat sample_float;
     if (num_channels_ == 3)
-        sample_resized.convertTo(sample_float, CV_32FC3);
+        sample_resized.convertTo(sample_float, CV_32FC3, 1/255.0);
     else
-        sample_resized.convertTo(sample_float, CV_32FC1);
+        sample_resized.convertTo(sample_float, CV_32FC1, 1/255.0);
 
     cv::Mat sample_normalized;
     cv::subtract(sample_float, mean_, sample_normalized);
@@ -299,8 +341,9 @@ CarModelDict::CarModelDict(const char *configFilePath):classifier(NULL)
         string model_file   = string(util.GetStr("CarModel","modelFilePath"));
         string trained_file = string(util.GetStr("CarModel","trainedFilePath"));
         string mean_file    = string(util.GetStr("CarModel","meanFilePath"));
-        string label_file   = string(util.GetStr("CarModel","labelFilePath"));;
-        classifier=new Classifier(model_file, trained_file, mean_file, label_file);
+        string mean_value   = string(util.GetStr("CarModel","meanValue"));
+        string label_file   = string(util.GetStr("CarModel","labelFilePath"));
+        classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
         util.CloseFile();
     }
 }
@@ -331,8 +374,9 @@ bool CarModelDict::reInit(const char *configFilePath)
         string model_file   = string(util.GetStr("CarModel","modelFilePath"));
         string trained_file = string(util.GetStr("CarModel","trainedFilePath"));
         string mean_file    = string(util.GetStr("CarModel","meanFilePath"));
-        string label_file   = string(util.GetStr("CarModel","labelFilePath"));;
-        classifier=new Classifier(model_file, trained_file, mean_file, label_file);
+        string mean_value   = string(util.GetStr("CarModel","meanValue"));
+        string label_file   = string(util.GetStr("CarModel","labelFilePath"));
+        classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
         util.CloseFile();
         return true;
     }
@@ -361,28 +405,8 @@ bool CarModelDict::checkImageFormat(cv::Mat &img)
 string CarModelDict::singleImageCarModelDict(cv::Mat img) {
     if(classifier!=NULL)
     {
-        //    if(util.OpenFile(configFilePath,"r")!=INI_RES::INI_SUCCESS)
-        //    {
-        //        std::cout<<"openConfigFileError"<<std::endl;
-        //        return string("error");
-        //    }
-        std::cout << "---------- Prediction for "
-                  << "inputImage" << " ----------" << std::endl;
-        if(!checkImageFormat(img))
-        {
-            std::cout<<"inputImg "<<"inputImage"<<" wrong format"<<std::endl;
-            //        util.CloseFile();
-            return string("error");
-        }
-        //    string model_file   = string(util.GetStr("CarModel","modelFilePath"));
-        //    string trained_file = string(util.GetStr("CarModel","trainedFilePath"));
-        //    string mean_file    = string(util.GetStr("CarModel","meanFilePath"));
-        //    string label_file   = string(util.GetStr("CarModel","labelFilePath"));;
-        //    static Classifier classifier(model_file, trained_file, mean_file, label_file);
-
         std::vector<Prediction> predictions = classifier->Classify(img);
-        //    util.CloseFile();
-        return predictions[0].first.substr(2);
+        return predictions[0].first;
     }
     else
     {
@@ -394,30 +418,12 @@ string CarModelDict::singleImageCarModelDict(cv::Mat img) {
 string CarModelDict::singleImagePathCarModelDict(const char* imageFilePath) {
     if(classifier!=NULL)
     {
-        //    if(util.OpenFile(configFilePath,"r")!=INI_RES::INI_SUCCESS)
-        //    {
-        //        std::cout<<"openConfigFileError"<<std::endl;
-        //        return string("error");
-        //    }
         cv::Mat img=cv::imread(imageFilePath);
         std::cout << "---------- Prediction for "
                   << string(imageFilePath) << " ----------" << std::endl;
-        if(!checkImageFormat(img))
-        {
-            std::cout<<"inputImg "<<string(imageFilePath)<<" wrong format"<<std::endl;
-            //        util.CloseFile();
-            return string("error");
-        }
-        //    string model_file   = string(util.GetStr("CarModel","modelFilePath"));
-        //    string trained_file = string(util.GetStr("CarModel","trainedFilePath"));
-        //    string mean_file    = string(util.GetStr("CarModel","meanFilePath"));
-        //    string label_file   = string(util.GetStr("CarModel","labelFilePath"));;
-        //    static Classifier classifier(model_file, trained_file, mean_file, label_file);
-
-
         std::vector<Prediction> predictions = classifier->Classify(img);
         //    util.CloseFile();
-        return predictions[0].first.substr(2);
+        return predictions[0].first;
     }
     else
     {
@@ -429,16 +435,6 @@ string CarModelDict::singleImagePathCarModelDict(const char* imageFilePath) {
 vector<string> CarModelDict::singleImagePathsCarModelDict(const vector<const char*> &imageFilePaths) {
     if(classifier!=NULL)
     {
-        //    if(util.OpenFile(configFilePath,"r")!=INI_RES::INI_SUCCESS)
-        //    {
-        //        std::cout<<"openConfigFileError"<<std::endl;
-        //        return vector<string>();
-        //    }
-        //    string model_file   = string(util.GetStr("CarModel","modelFilePath"));
-        //    string trained_file = string(util.GetStr("CarModel","trainedFilePath"));
-        //    string mean_file    = string(util.GetStr("CarModel","meanFilePath"));
-        //    string label_file   = string(util.GetStr("CarModel","labelFilePath"));;
-        //    static Classifier classifier(model_file, trained_file, mean_file, label_file);
         vector<string> res;
         for(vector<const char*>::const_iterator it=imageFilePaths.cbegin();it!=imageFilePaths.cend();it++)
         {
@@ -446,16 +442,9 @@ vector<string> CarModelDict::singleImagePathsCarModelDict(const vector<const cha
                       << string(*it) << " ----------" << std::endl;
             string imageFilePath=string(*it);
             cv::Mat img=cv::imread(imageFilePath);
-            if(!checkImageFormat(img))
-            {
-                std::cout<<"inputImg "<<string(imageFilePath)<<" wrong format"<<std::endl;
-                res.push_back("error");
-                continue;
-            }
             std::vector<Prediction> predictions = classifier->Classify(img);
-            res.push_back(predictions[0].first.substr(2));
+            res.push_back(predictions[0].first);
         }
-        //    util.CloseFile();
         return res;
     }
     else
@@ -468,16 +457,6 @@ vector<string> CarModelDict::singleImagePathsCarModelDict(const vector<const cha
 vector<string> CarModelDict::singleImagesCarModelDict(const vector<cv::Mat> &images) {
     if(classifier!=NULL)
     {
-        //    if(util.OpenFile(configFilePath,"r")!=INI_RES::INI_SUCCESS)
-        //    {
-        //        std::cout<<"openConfigFileError"<<std::endl;
-        //        return vector<string>();
-        //    }
-        //    string model_file   = string(util.GetStr("CarModel","modelFilePath"));
-        //    string trained_file = string(util.GetStr("CarModel","trainedFilePath"));
-        //    string mean_file    = string(util.GetStr("CarModel","meanFilePath"));
-        //    string label_file   = string(util.GetStr("CarModel","labelFilePath"));;
-        //    static Classifier classifier(model_file, trained_file, mean_file, label_file);
         vector<string> res;
         int num=0;
         for(vector<cv::Mat>::const_iterator it=images.cbegin();it!=images.cend();it++)
@@ -485,15 +464,8 @@ vector<string> CarModelDict::singleImagesCarModelDict(const vector<cv::Mat> &ima
             std::cout << "---------- Prediction for "
                       << "inputImage " <<num<< " ----------" << std::endl;
             cv::Mat img=*it;
-            if(!checkImageFormat(img))
-            {
-                std::cout<<"inputImg "<<num<<" wrong format"<<std::endl;
-                res.push_back("error");
-                num++;
-                continue;
-            }
             std::vector<Prediction> predictions = classifier->Classify(img);
-            res.push_back(predictions[0].first.substr(2));
+            res.push_back(predictions[0].first);
             num++;
         }
         //    util.CloseFile();
@@ -506,56 +478,25 @@ vector<string> CarModelDict::singleImagesCarModelDict(const vector<cv::Mat> &ima
     }
 }
 
+#include<QDir>
 
 int main(int argc,char** argv)
 {
     ::google::InitGoogleLogging(argv[0]);//use only once
-    CarModelDict dicter("./config.ini");//read config file and init
+    CarModelDict dicter("/home/zg/traffic/QtProject/carModelDict/config.ini");//read config file and init
 
-    cv::Mat image1=cv::imread("cars/test.png");
-    cv::Mat image2=cv::imread("cars/2.jpeg");
-    cv::Mat image3=cv::imread("cars/3.jpeg");
-    cv::Mat image4=cv::imread("cars/4.jpeg");
-    cv::Mat image5=cv::imread("cars/5.jpeg");
-    cv::Mat image6=cv::imread("cars/6.jpeg");
-    vector<cv::Mat> vecMat;
-    vecMat.push_back(image1);
-    vecMat.push_back(image2);
-    vecMat.push_back(image3);
-    vecMat.push_back(image4);
-    vecMat.push_back(image5);
-    vecMat.push_back(image6);
-
-    const char* imagePath1="cars/1.jpeg";
-    const char* imagePath2="cars/2.jpeg";
-    const char* imagePath3="cars/3.jpeg";
-    const char* imagePath4="cars/4.jpeg";
-    const char* imagePath5="cars/5.jpeg";
-    const char* imagePath6="cars/6.jpeg";
-
-    vector<const char*> vecPath;
-    vecPath.push_back(imagePath1);
-    vecPath.push_back(imagePath2);
-    vecPath.push_back(imagePath3);
-    vecPath.push_back(imagePath4);
-    vecPath.push_back(imagePath5);
-    vecPath.push_back(imagePath6);
-
-
-    std::cout<<"****test single Mat****"<<std::endl;
-    std::cout<<dicter.singleImageCarModelDict(image1)<<std::endl;
-    std::cout<<"****test single path****"<<std::endl;
-    std::cout<<dicter.singleImagePathCarModelDict(imagePath1)<<std::endl;
-    std::cout<<"****test Mat group****"<<std::endl;
-    vector<string> vec=dicter.singleImagesCarModelDict(vecMat);
-    for(vector<string>::iterator it=vec.begin();it!=vec.end();it++)
+    QDir dir("/home/zg/1T/samples/0");
+    QFileInfoList ls = dir.entryInfoList(QStringList(),QDir::Files);
+    foreach(QFileInfo info,ls)
     {
-        std::cout<<*it<<std::endl;
+        cout<<info.filePath().toStdString().c_str()<<endl;
+        cv::Mat image1=cv::imread(info.filePath().toStdString().c_str());
+        cv::imshow("dd", image1);
+
+        cv::moveWindow("dd",1000,1000);
+        std::cout<<"****test single Mat****"<<std::endl;
+        std::cout<<dicter.singleImageCarModelDict(image1)<<std::endl;
+        cv::waitKey();
     }
-    std::cout<<"****test path group****"<<std::endl;
-    vector<string> vec2=dicter.singleImagePathsCarModelDict(vecPath);
-    for(vector<string>::iterator it=vec2.begin();it!=vec2.end();it++)
-    {
-        std::cout<<*it<<std::endl;
-    }
+
 }

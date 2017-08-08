@@ -12,9 +12,6 @@
 #include<opencv2/highgui/highgui.hpp>
 #include<opencv2/imgproc/imgproc.hpp>
 #include<opencv2/ml/ml.hpp>
-#include "highgui.h"
-#include "cv.h"
-#include "cxcore.hpp"
 #include "iostream"
 #include "opencv2/opencv.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
@@ -48,6 +45,8 @@ private slots:
     void on_pushButton_5_clicked();
 
     void on_pbFileTxt_clicked();
+
+    void on_pushButton_6_clicked();
 
 private:
     Ui::MainWindow *ui;

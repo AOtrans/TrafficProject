@@ -1,1 +1,4 @@
 *.pro.user
+/dependence/
+*.~lock.数据服务器与功能服务器对接接口.docx#
+*.docx

@@ -3,9 +3,9 @@
 
 #include <string>
 #include <opencv2/core/core.hpp>
-#include<opencv2/highgui/highgui.hpp>
-#include<opencv2/imgproc/imgproc.hpp>
-#include<opencv2/ml/ml.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/ml/ml.hpp>
 #include "highgui.h"
 #include "cv.h"
 #include "cxcore.hpp"
@@ -16,8 +16,16 @@
 #include <vector>
 #include <math.h>
 #include "ml.h"
-#include "caffe/caffe.hpp"
-#include "iniutil.h"
+#include <caffe/caffe.hpp>
+#include "settingutil.h"
+#include "DB/dbmanager.h"
+#include <QDebug>
+
+extern SettingUtil util;
+extern DBManager dbManager;
+
 using namespace cv;
 using namespace std;
+using namespace caffe;
+
 #endif // COMMON_H

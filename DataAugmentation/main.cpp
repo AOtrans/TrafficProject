@@ -46,6 +46,7 @@ DataAugmentation <annotation name> <output folder> -a <output annnotation> -c <c
 #include <iostream>
 #include "Util.h"
 #include <exception>
+#include <fstream>
 #include "DataAugmentation.h"
 
 using namespace boost::program_options;
@@ -119,7 +120,7 @@ bool LoadConf(const std::string& conf_file, int& num_generate,
 
 	variables_map argmap;
 	try{
-		std::ifstream ifs(conf_file);
+        std::ifstream ifs(conf_file);
 		if (!ifs.is_open()){
 			std::string err_msg = "Fail to open config file \"" + conf_file + "\".";
             std::logic_error ex(err_msg.c_str());
@@ -181,10 +182,10 @@ int main(int argc, char * argv[])
 	std::string conf_file, input_name, output_folder, output_anno_file;
 //	if (!ParseCommandLine(argc, argv, conf_file, input_name, output_folder, output_anno_file))
 //		return -1;
-    conf_file="D:/Qt/AO/DataAugmentation/config.txt";
-    input_name="D:/Qt/AO/DataAugmentation/annotation.txt";
-    output_folder="D:/";
-    output_anno_file="D:/Qt/AO/DataAugmentation/out.txt";
+    conf_file="/home/zg/traffic/QtProject/DataAugmentation/config.txt";
+    input_name="/home/zg/traffic/QtProject/DataAugmentation/annotation.txt";
+    output_folder="";
+    output_anno_file="/home/zg/traffic/QtProject/DataAugmentation/out.txt";
     int num_generate;
 	double yaw_range, pitch_range, roll_range, x_slide, y_slide, blur_sigma, noise_sigma, aspect_range;
 	if (!LoadConf(conf_file, num_generate, yaw_range, pitch_range, roll_range,
@@ -192,7 +193,7 @@ int main(int argc, char * argv[])
 		return -1;
 
 	std::vector<std::string> img_files;
-	std::vector<std::vector<cv::Rect>> obj_positions;
+    std::vector<std::vector<cv::Rect> > obj_positions;
 	GetImageFileNames(input_name, img_files, obj_positions);
 
 	DataAugmentation(img_files, obj_positions, output_folder, output_anno_file, num_generate, yaw_range, pitch_range, roll_range,

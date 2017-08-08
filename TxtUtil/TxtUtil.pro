@@ -18,23 +18,9 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h
 
 FORMS    += mainwindow.ui
+INCLUDEPATH += /usr/local/include/opencv \
+               /usr/local/include/opencv2 \
 
+LIBS += -L/usr/local/lib  -L/home/zg/traffic/caffe-ssd/build/lib \
+        -lopencv_highgui -lopencv_core -lopencv_imgproc
 
-INCLUDEPATH+=D:\Qt\opencvOnUse\include\opencv  \
-             D:\Qt\opencvOnUse\include\opencv2 \
-             D:\Qt\opencvOnUse\include         \
-             D:\Qt\GnuWin32\include
-INCLUDEPATH+=D:\Qt\Qt5.7.0\Boost1.62.0\include
-INCLUDEPATH+=D:\armadillo7.6\include
-INCLUDEPATH+=D:\mlpack2.1.1\include
-INCLUDEPATH+=D:\OpenBLAS0.2.14\include
-INCLUDEPATH+=D:\lapack3.7\include
-INCLUDEPATH+=D:\armadillo7.6\include\armadillo_bits
-
-LIBS += -L D:\Qt\opencvOnUse\lib\libopencv_*.a
-LIBS += -L D:\Qt\GnuWin32\lib\lib*.a
-LIBS += -L D:\armadillo7.6\lib\lib*.a
-LIBS += -L D:\lapack3.7\lib\lib*.a
-LIBS += -L D:\mlpack2.1.1\lib*.a
-LIBS += -L D:\Qt\Qt5.7.0\Boost1.62.0\lib\lib*.a
-LIBS += -L D:\OpenBLAS0.2.14\lib\libopenblas.dll.a
