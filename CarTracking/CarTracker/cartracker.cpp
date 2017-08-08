@@ -64,6 +64,36 @@ string CarTracker::getPlate(const Mat &img)
 
 }
 
+float *CarTracker::getSiftFeature(Mat &img)
+{
+    SiftDescriptorExtractor extractor;
+        vector<KeyPoint> keypoints;
+        cv::Mat des;
+        float *data=new float[128];
+        float *temp=data;
+        int step = 10; // 10 pixels spacing between kp's
+
+        for (int y=step; y<src.rows-step; y+=step){
+            for (int x=step; x<src.cols-step; x+=step){
+                // x,y,radius
+                keypoints.push_back(KeyPoint(float(x), float(y), float(step)));
+            }
+        }
+        extractor.compute(img, keypoints, des);
+
+        for(int i=0;i<des.cols;i++)
+        {
+            float max=0.0;
+            for(int j=0;j<des.rows;j++)
+            {
+                max=fabs(pcaDes.at<float>(j,i))>max?fabs(pcaDes.at<float>(j,i)):max;
+            }
+            *(temp++)=max;
+        }
+
+        return data;
+}
+
 string CarTracker::carTrack(string videoFileName, string shape, string color, string logo, string plate)
 {
     cv::VideoCapture capture(videoFileName);
@@ -124,6 +154,22 @@ string CarTracker::carTrack(string videoFileName, string shape, string color, st
 vector<Rect> CarTracker::getCars(Mat &img)
 {
 
+}
+
+bool CarTracker::compareCOSLike(float *t1, float *t2, int count)
+{
+    float dotSum=0.0f;
+    float modeT1=0.0f,modeT2=0.0f;
+    for(int i=0;i<count;i++)
+    {
+        dotSum+=t1[i]*t2[i];
+        modeT1+=t1[i]*t1[i];
+        modeT2+=t2[i]*t2[i];
+    }
+    if(modeT1==0||modeT2==0)
+        return false;
+    else
+        return (acos(dotSum/(sqrt(fabs(modeT1))*sqrt(fabs(modeT2))))<=0.1);
 }
 
 bool CarTracker::compareShape(std::vector<Prediction> &result,string shape)

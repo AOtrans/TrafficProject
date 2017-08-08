@@ -12,9 +12,11 @@ public:
     std::vector<Prediction> getShape(const cv::Mat &img,int top_k);
     std::vector<Prediction> getColor(const cv::Mat &img,int top_k);
     string getPlate(const cv::Mat &img);
+    float* getSiftFeature(cv::Mat &img);
     string carTrack(string videoFileName,string shape,string color,string logo="",string plate="");
 private:
     vector<cv::Rect> getCars(Mat &img);
+    bool compareCOSLike(float * t1,float *t2,int count);
     bool compareShape(std::vector<Prediction> &result,string shape);
     bool compareColor(std::vector<Prediction> &result,string shape);
     CarFeatureExtract *shapeExtract,*colorExtract,*logoExtract;
