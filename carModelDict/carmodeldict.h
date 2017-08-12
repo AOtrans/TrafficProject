@@ -19,7 +19,7 @@ class Classifier;
 class CarModelDict
 {
 public:
-    CarModelDict(const char* configFilePath);
+    CarModelDict(const char* configFilePath, string tag);
     CarModelDict();
     ~CarModelDict();
     bool reInit(const char* configFilePath);

@@ -31,7 +31,8 @@ SOURCES += main.cpp \
     http/httprequest.cpp \
     http/httpresponse.cpp \
     http/httpserver.cpp \
-    funcs.cpp
+    funcs.cpp \
+    TrafficStatistics/trafficinfo.cpp
 
 HEADERS += \
     common.h \
@@ -58,7 +59,8 @@ HEADERS += \
     http/httpresponse.h \
     http/httpserver.h \
     funcs.h \
-    DB/dbcommon.h
+    DB/dbcommon.h \
+    TrafficStatistics/TrafficInfo.h
 
 DISTFILES += \
     config.ini \

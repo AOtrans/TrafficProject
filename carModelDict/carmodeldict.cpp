@@ -23,7 +23,8 @@ public:
                const string& trained_file,
                const string& mean_file,
                const string& mean_value,
-               const string& label_file);
+               const string& label_file,
+               bool ifScale);
 
     std::vector<Prediction> Classify(const cv::Mat& img, int N = 5);
 
@@ -43,19 +44,22 @@ private:
     int num_channels_;
     cv::Mat mean_;
     std::vector<string> labels_;
+    bool ifScale;
 };
 
 Classifier::Classifier(const string& model_file,
                        const string& trained_file,
                        const string& mean_file,
                        const string& mean_value,
-                       const string& label_file) {
+                       const string& label_file,
+                       bool ifScale) {
 #ifdef CPU_ONLY
     Caffe::set_mode(Caffe::CPU);
 #else
     Caffe::set_mode(Caffe::GPU);
 #endif
 
+    this->ifScale = ifScale;
     /* Load the network. */
     net_.reset(new Net<float>(model_file, TEST));
     net_->CopyTrainedLayersFrom(trained_file);
@@ -240,9 +244,16 @@ void Classifier::Preprocess(const cv::Mat& img,
 
     cv::Mat sample_float;
     if (num_channels_ == 3)
-        sample_resized.convertTo(sample_float, CV_32FC3, 1/255.0);
+        if(ifScale)
+            sample_resized.convertTo(sample_float, CV_32FC3, 1/255.0);
+        else
+            sample_resized.convertTo(sample_float, CV_32FC3);
     else
-        sample_resized.convertTo(sample_float, CV_32FC1, 1/255.0);
+        if(ifScale)
+            sample_resized.convertTo(sample_float, CV_32FC1, 1/255.0);
+        else
+            sample_resized.convertTo(sample_float, CV_32FC1);
+
 
     cv::Mat sample_normalized;
     cv::subtract(sample_float, mean_, sample_normalized);
@@ -329,7 +340,7 @@ void Classifier::Preprocess(const cv::Mat& img,
 //     std::cout<<"accuracy:"<<float(pos)/float(count)<<std::endl;
 // }
 
-CarModelDict::CarModelDict(const char *configFilePath):classifier(NULL)
+CarModelDict::CarModelDict(const char *configFilePath, string tag):classifier(NULL)
 {
     IniUtil util;
     if(util.OpenFile(configFilePath,"r")!=INI_SUCCESS)
@@ -338,12 +349,14 @@ CarModelDict::CarModelDict(const char *configFilePath):classifier(NULL)
     }
     else
     {
-        string model_file   = string(util.GetStr("CarModel","modelFilePath"));
-        string trained_file = string(util.GetStr("CarModel","trainedFilePath"));
-        string mean_file    = string(util.GetStr("CarModel","meanFilePath"));
-        string mean_value   = string(util.GetStr("CarModel","meanValue"));
-        string label_file   = string(util.GetStr("CarModel","labelFilePath"));
-        classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
+        string model_file   = string(util.GetStr(tag.c_str(),"modelFilePath"));
+        string trained_file = string(util.GetStr(tag.c_str(),"trainedFilePath"));
+        string mean_file    = string(util.GetStr(tag.c_str(),"meanFilePath"));
+        string mean_value   = string(util.GetStr(tag.c_str(),"meanValue"));
+        string label_file   = string(util.GetStr(tag.c_str(),"labelFilePath"));
+        bool ifScale = (string(util.GetStr(tag.c_str(),"ifScale")) == "true");
+        std::cout<<ifScale<<"****************"<<std::endl;
+        classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file ,ifScale);
         util.CloseFile();
     }
 }
@@ -376,7 +389,8 @@ bool CarModelDict::reInit(const char *configFilePath)
         string mean_file    = string(util.GetStr("CarModel","meanFilePath"));
         string mean_value   = string(util.GetStr("CarModel","meanValue"));
         string label_file   = string(util.GetStr("CarModel","labelFilePath"));
-        classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file);
+        bool ifScale = (string(util.GetStr("CarModel","ifScale")) == "true");
+        classifier=new Classifier(model_file, trained_file, mean_file, mean_value, label_file ,ifScale);
         util.CloseFile();
         return true;
     }
@@ -483,19 +497,28 @@ vector<string> CarModelDict::singleImagesCarModelDict(const vector<cv::Mat> &ima
 int main(int argc,char** argv)
 {
     ::google::InitGoogleLogging(argv[0]);//use only once
-    CarModelDict dicter("/home/zg/traffic/QtProject/carModelDict/config.ini");//read config file and init
+    CarModelDict dicter("/home/zg/traffic/QtProject/carModelDict/config.ini","CarShape");//read config file and init
 
-    QDir dir("/home/zg/1T/samples/0");
+    QDir dir("/home/zg/res/image");
     QFileInfoList ls = dir.entryInfoList(QStringList(),QDir::Files);
     foreach(QFileInfo info,ls)
     {
         cout<<info.filePath().toStdString().c_str()<<endl;
         cv::Mat image1=cv::imread(info.filePath().toStdString().c_str());
-        cv::imshow("dd", image1);
+        cv::Mat mat = image1;
+
+        int width = mat.cols;
+        int height = mat.rows;
+        if(width > height)
+            cv::copyMakeBorder(mat, mat, (width - height)/2,  (width - height)/2, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
+        else if(height > width)
+            cv::copyMakeBorder(mat, mat, 0, 0, (height - width)/2,  (height - width)/2, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
+
+        cv::imshow("dd", mat);
 
         cv::moveWindow("dd",1000,1000);
         std::cout<<"****test single Mat****"<<std::endl;
-        std::cout<<dicter.singleImageCarModelDict(image1)<<std::endl;
+        std::cout<<dicter.singleImageCarModelDict(mat)<<std::endl;
         cv::waitKey();
     }
 

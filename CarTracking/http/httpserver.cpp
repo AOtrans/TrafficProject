@@ -114,17 +114,16 @@ void HttpServer::onRequest(HttpRequest* req, HttpResponse* resp)
 
         QStringList paras = list.at(0).split("_");
         QString videoPath = list.at(1);
-        videoPath = videoPath.replace("%","/");
-
+        videoPath = videoPath.replace("+","/").replace("I:","/home/zg/1T");
         QString tag = paras.at(0);
 
-        if(tag == "video")
+        if(tag == "car")
         {
             carTrack(videoPath, paras.at(1), paras.at(2), paras.at(3));
         }
         else if(tag == "moto")
         {
-            motoTrack(videoPath, paras.at(1), paras.at(2), paras.at(3), paras.at(4));
+            motoTrack(videoPath, paras.at(1), paras.at(2));
         }
         else if(tag == "truck")
         {
@@ -138,9 +137,17 @@ void HttpServer::onRequest(HttpRequest* req, HttpResponse* resp)
         {
             areaCarDetect(videoPath, paras.at(1), paras.at(2), paras.at(3));
         }
+        else if(tag == "shotcut")
+        {
+            saveShotcut(videoPath, paras.at(1));
+        }
+        else if(tag == "traffic")
+        {
+            trafficStatistics(videoPath, paras.at(1), paras.at(2));
+        }
         else
         {
-
+            result = "bad tag";
         }
 
         result = "success";
@@ -150,6 +157,7 @@ void HttpServer::onRequest(HttpRequest* req, HttpResponse* resp)
         result = "bad parameter";
     }
 
+    qDebug() << "result:" << result.c_str();
     QString reply  = tr(("<html><head><title>Rokh Server Test</title></head><body><h1>"
                          + result
                          + "</h1></body></html>").c_str()).toLatin1();
