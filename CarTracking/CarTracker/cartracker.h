@@ -7,6 +7,19 @@
 #include "CarPlate/Lprs.h"
 #include "TrafficStatistics/TrafficInfo.h"
 
+typedef struct CarInfo
+{
+    float *feature;
+    cv::Rect boundingBox;
+    int matchNums;
+    cv::Mat mat;
+
+    ~CarInfo()
+    {
+        delete feature;
+    }
+}CarInfo;
+
 class CarTracker
 {
 public:
@@ -21,7 +34,7 @@ public:
     string getPlate(const cv::Mat &img);
     vector<cv::Rect> getCars(Mat &img);
     vector<cv::Rect> getMotos(Mat &img);
-    void getTrucks(Mat &img,QString startTime, QString channelCode);
+    void getTrucks(Mat &img,QString startTime, QString channelCode, QVector<CarInfo *> &matchList);
 
     string carTrack(string videoFileName, string shape, string color, string logo="", string plate="");
 
@@ -41,7 +54,11 @@ public:
     QString getImageSavePath();
 
     bool compareCOSLike(float *t1, float *t2, int count);
-    float getSiftFeature(Mat &img);
+    float* getSiftFeature(Mat img);
+    float* getHistFeature(Mat image);
+
+    bool checkMatchList(cv::Mat mat, QVector<CarInfo *> &matchList);
+    void excuteMatchList(QVector<CarInfo *> &matchList);
 private:
     bool compareShape(std::vector<Prediction> &result, string shape);
     bool compareColor(std::vector<Prediction> &result, string shape);

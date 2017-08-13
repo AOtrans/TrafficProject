@@ -24,11 +24,11 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
     initCodec();
 
-    if(!dbManager.connect())
-    {
-        qDebug()<<"DB Connect false";
-        exit(-1);
-    }
+//    if(!dbManager.connect())
+//    {
+//        qDebug()<<"DB Connect false";
+//        exit(-1);
+//    }
     qDebug()<<"DB connect success";
 
     HttpServer server;

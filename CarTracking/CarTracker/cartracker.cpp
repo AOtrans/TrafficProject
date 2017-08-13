@@ -117,35 +117,35 @@ string CarTracker::getPlate(const Mat &img)
     return plateExtract->prosess(img);
 }
 
-float *CarTracker::getSiftFeature(Mat &img)
+float* CarTracker::getSiftFeature(Mat img)
 {
-        SiftDescriptorExtractor extractor;
-        vector<KeyPoint> keypoints;
-        cv::Mat des;
-        float *data = new float[128];
-        float *temp = data;
-        int step = 10; // 10 pixels spacing between kp's
+    SiftDescriptorExtractor extractor;
+    vector<KeyPoint> keypoints;
+    cv::Mat des;
+    float *data = new float[128];
+    float *temp = data;
+    int step = 10; // 10 pixels spacing between kp's
 
-        for (int y = step; y < src.rows-step; y += step){
-            for (int x = step; x < src.cols-step; x += step){
-                // x,y,radius
-                keypoints.push_back(KeyPoint(float(x), float(y), float(step)));
-            }
+    for (int y = step; y < img.rows-step; y += step){
+        for (int x = step; x < img.cols-step; x += step){
+            // x,y,radius
+            keypoints.push_back(KeyPoint(float(x), float(y), float(step)));
         }
+    }
 
-        extractor.compute(img, keypoints, des);
+    extractor.compute(img, keypoints, des);
 
-        for(int i = 0; i < des.cols; i++)
+    for(int i = 0; i < des.cols; i++)
+    {
+        float max = 0.0;
+        for(int j = 0; j < des.rows; j++)
         {
-            float max = 0.0;
-            for(int j = 0; j < des.rows; j++)
-            {
-                max=fabs(pcaDes.at<float>(j,i)) > max?fabs(pcaDes.at<float>(j,i)):max;
-            }
-            *(temp++) = max;
+            max=fabs(des.at<float>(j,i)) > max?fabs(des.at<float>(j,i)):max;
         }
+        *(temp++) = max;
+    }
 
-        return data;
+    return data;
 }
 
 string CarTracker::carTrack(string videoFileName, string shape, string color, string logo, string plate)
@@ -287,6 +287,7 @@ string CarTracker::motoTrack(string videoFileName, string shape)
 void CarTracker::truckTrack(string videoFileName, string startTime, string channelCode)
 {
     cv::VideoCapture capture(videoFileName);
+    QVector<CarInfo *> matchList;
 
     if (!capture.isOpened())
     {
@@ -299,7 +300,7 @@ void CarTracker::truckTrack(string videoFileName, string startTime, string chann
 
     cv::Mat frame;
     QDateTime time = QDateTime::fromTime_t(atoi(startTime.c_str()));
-    int cross = 20;
+    int cross = 3;
     int num = 0;
 
     while (capture.read(frame))
@@ -311,8 +312,13 @@ void CarTracker::truckTrack(string videoFileName, string startTime, string chann
             continue;
         }
 
-        getTrucks(frame, QString::number(time.toTime_t()), QString(channelCode.c_str()));
+        getTrucks(frame, QString::number(time.toTime_t()), QString(channelCode.c_str()), matchList);
+
+        excuteMatchList(matchList);
     }
+
+    for(int i = 0; i < matchList.size(); i++)
+        delete matchList.at(i);
 
     capture.release();
 }
@@ -320,6 +326,7 @@ void CarTracker::truckTrack(string videoFileName, string startTime, string chann
 void CarTracker::taxiTrack(string videoFileName, string startTime, string channelCode)
 {
     cv::VideoCapture capture(videoFileName);
+    QVector<CarInfo *> matchList;
 
     if (!capture.isOpened())
     {
@@ -333,7 +340,7 @@ void CarTracker::taxiTrack(string videoFileName, string startTime, string channe
 
     cv::Mat frame;
     QDateTime time = QDateTime::fromTime_t(atoi(startTime.c_str()));
-    int cross = 20;
+    int cross = 3;
     int num = 0;
 
     while (capture.read(frame))
@@ -346,34 +353,50 @@ void CarTracker::taxiTrack(string videoFileName, string startTime, string channe
         }
 
         vector<cv::Rect> &&cars = getCars(frame);
-
-
         bool isPointFrame = false;
+
         for(vector<cv::Rect>::iterator it = cars.begin(); it != cars.end(); it++)
         {
-            cv::Mat mat = frame(*it).clone();
-
-            int width = (*it).width;
-            int height = (*it).height;
-            if(width > height)
-                cv::copyMakeBorder(mat, mat, (width - height)/2,  (width - height)/2, 0, 0, cv::BORDER_CONSTANT, Scalar(0,0,0) );
-            else if(height > width)
-                cv::copyMakeBorder(mat, mat, 0, 0, (height - width)/2,  (height - width)/2, cv::BORDER_CONSTANT, Scalar(0,0,0) );
-
-            auto dcolor = getColor(mat, 2);
-            auto dshape = getShape(mat, 2);
-
-            //            imshow("dd",mat);
-            //            qDebug()<<dcolor.at(0).first.c_str()<<dshape.at(0).first.c_str();
-            //            cv::waitKey();
-//            if(dcolor.at(0).first == "green" && (dshape.at(0).first == "sedan" || dshape.at(0).first == "hatchback"))
-            if(true)
+            if(!checkMatchList(frame(*it), matchList) )
             {
-                cv::rectangle(frame, *it, Scalar(0, 0, 255), 2);
-                cv::putText(frame,dcolor.at(0).first+"_"+dshape.at(0).first,cv::Point((*it).x-5,(*it).y),0,1,Scalar(0,0,255),2);
-                isPointFrame = true;
+                cv::Mat mat = frame(*it).clone();
+
+                int width = (*it).width;
+                int height = (*it).height;
+
+                if(width > height)
+                    cv::copyMakeBorder(mat, mat, (width - height)/2,  (width - height)/2, 0, 0, cv::BORDER_CONSTANT, Scalar(0,0,0) );
+                else if(height > width)
+                    cv::copyMakeBorder(mat, mat, 0, 0, (height - width)/2,  (height - width)/2, cv::BORDER_CONSTANT, Scalar(0,0,0) );
+
+                auto dcolor = getColor(mat, 2);
+                auto dshape = getShape(mat, 2);
+
+                if(dcolor.at(0).first == "green" && (dshape.at(0).first == "sedan" || dshape.at(0).first == "hatchback"))
+                {
+                    cv::rectangle(frame, *it, Scalar(0, 0, 255), 2);
+                    cv::putText(frame,dcolor.at(0).first+"_"+dshape.at(0).first,cv::Point((*it).x-5,(*it).y),0,1,Scalar(0,0,255),2);
+                    isPointFrame = true;
+                }
+
+                CarInfo *info = new CarInfo;
+                info->boundingBox = *it;
+                info->matchNums = 0;
+                info->feature = getHistFeature(frame(*it));
+                info->mat = frame(*it).clone();
+
+                matchList.push_back(info);
+
+                cv::imshow("not match",frame(*it));
+                cv::waitKey();
+            }
+            else
+            {
+                qDebug() << "------------------------match---------------------";
             }
         }
+
+        excuteMatchList(matchList);
 
         if(isPointFrame)
         {
@@ -384,6 +407,9 @@ void CarTracker::taxiTrack(string videoFileName, string startTime, string channe
             dbManager.execQuery(sql.arg(QString(channelCode.c_str()) ).arg(QString::number(time.toTime_t()) ).arg(imageUrl).arg("taxi"));
         }
     }
+
+    for(int i = 0; i < matchList.size(); i++)
+        delete matchList.at(i);
 
     capture.release();
 }
@@ -519,31 +545,31 @@ string CarTracker::trafficStatistics(string videoFileName, string areas)
         rectboxes.push_back(rectboxtrans);
     }
 
-//    std::vector<float> rectboxtrans;
-//    rectboxtrans.push_back(0);
-//    rectboxtrans.push_back(800);
-//    rectboxtrans.push_back(500);
-//    rectboxtrans.push_back(800 + 260);
-//    rectboxtrans.push_back(500 + 200);
+    //    std::vector<float> rectboxtrans;
+    //    rectboxtrans.push_back(0);
+    //    rectboxtrans.push_back(800);
+    //    rectboxtrans.push_back(500);
+    //    rectboxtrans.push_back(800 + 260);
+    //    rectboxtrans.push_back(500 + 200);
 
-//    std::vector<float> rectboxtrans_1;
-//    rectboxtrans_1.push_back(0);
-//    rectboxtrans_1.push_back(100);
-//    rectboxtrans_1.push_back(500);
-//    rectboxtrans_1.push_back(100 + 260);
-//    rectboxtrans_1.push_back(500 + 200);
+    //    std::vector<float> rectboxtrans_1;
+    //    rectboxtrans_1.push_back(0);
+    //    rectboxtrans_1.push_back(100);
+    //    rectboxtrans_1.push_back(500);
+    //    rectboxtrans_1.push_back(100 + 260);
+    //    rectboxtrans_1.push_back(500 + 200);
 
-//    std::vector<float> rectboxtrans_2;
-//    rectboxtrans_2.push_back(0);
-//    rectboxtrans_2.push_back(460);
-//    rectboxtrans_2.push_back(500);
-//    rectboxtrans_2.push_back(460 + 260);
-//    rectboxtrans_2.push_back(500 + 200);
+    //    std::vector<float> rectboxtrans_2;
+    //    rectboxtrans_2.push_back(0);
+    //    rectboxtrans_2.push_back(460);
+    //    rectboxtrans_2.push_back(500);
+    //    rectboxtrans_2.push_back(460 + 260);
+    //    rectboxtrans_2.push_back(500 + 200);
 
-//    std::vector<vector<float> > rectboxes;
-//    rectboxes.push_back(rectboxtrans);
-//    rectboxes.push_back(rectboxtrans_1);
-//    rectboxes.push_back(rectboxtrans_2);
+    //    std::vector<vector<float> > rectboxes;
+    //    rectboxes.push_back(rectboxtrans);
+    //    rectboxes.push_back(rectboxtrans_1);
+    //    rectboxes.push_back(rectboxtrans_2);
 
     string outputVideoName = videoSavePath.toStdString() + "/" + "output_local.avi";
     //路口画框
@@ -678,7 +704,7 @@ vector<Rect> CarTracker::getMotos(Mat &img)
     return results;
 }
 
-void CarTracker::getTrucks(Mat &img, QString time, QString channelCode)
+void CarTracker::getTrucks(Mat &img, QString time, QString channelCode, QVector<CarInfo *> &matchList)
 {
     bool isPointFrame = false;
 
@@ -706,7 +732,6 @@ void CarTracker::getTrucks(Mat &img, QString time, QString channelCode)
         const vector<float>& d = detections[i];
         if (d[0] >= truckThreshold && d[5] == 1) {
 
-            isPointFrame = true;
             int x=(d[1]-pad > 0)?(d[1]-pad):0;
             int y=(d[2]-pad > 0)?(d[2]-pad):0;
             int width=(d[3]+pad < img.cols)?(d[3]-d[1]+pad):(img.cols-d[1]);
@@ -714,7 +739,26 @@ void CarTracker::getTrucks(Mat &img, QString time, QString channelCode)
 
             cv::Rect rect(x, y, width, height);
 
-            cv::rectangle(img, rect, Scalar(0, 0, 255), 2);
+            if(!checkMatchList(img(rect), matchList) )
+            {
+                cv::rectangle(img, rect, Scalar(0, 0, 255), 2);
+                isPointFrame = true;
+
+                CarInfo *info = new CarInfo;
+                info->boundingBox = rect;
+                info->matchNums = 0;
+                info->feature = getHistFeature(img(rect));
+                info->mat = img(rect).clone();
+
+                matchList.push_back(info);
+
+                cv::imshow("not match",img(rect));
+                cv::waitKey();
+            }
+            else
+            {
+                qDebug() << "------------------------match---------------------";
+            }
         }
     }
 
@@ -743,7 +787,11 @@ bool CarTracker::compareCOSLike(float *t1, float *t2, int count)
     if(modeT1 == 0 || modeT2 == 0)
         return false;
     else
-        return (acos(dotSum/(sqrt(fabs(modeT1) )*sqrt(fabs(modeT2) ) ) ) <= 0.1);
+    {
+        double d = acos(dotSum/(sqrt(fabs(modeT1) )*sqrt(fabs(modeT2) ) ) );
+        std::cout << d << std::endl;
+        return ( d <= 0.2);
+    }
 }
 
 bool CarTracker::compareShape(std::vector<Prediction> &result,string shape)
@@ -772,4 +820,76 @@ bool CarTracker::compareColor(std::vector<Prediction> &result, string color)
     }
 
     return false;
+}
+
+float* CarTracker::getHistFeature(Mat image)
+{
+    if (image.channels() > 1)
+        cvtColor(image, image, COLOR_BGR2GRAY);
+
+    cv::Mat histogram;
+    const int histSize = 256;
+    float range[] = {0, 255};
+    const float *ranges[] = {range};
+    const int channels = 0;
+
+    cv::calcHist(&image, 1, &channels, cv::Mat(), histogram, 1, &histSize, &ranges[0], true, false);
+
+    float *h = (float*)histogram.data;
+    float *hh = new float[256];
+
+    if (h) {
+        for (int i = 0; i < 256; ++i) {
+            hh[i] = h[i];
+        }
+    }
+
+    return hh;
+}
+
+bool CarTracker::checkMatchList(cv::Mat mat, QVector<CarInfo *> &matchList)
+{
+    if(matchList.size() == 0)
+    {
+        std::cout << "empty list" << std::endl;
+        return false;
+    }
+
+    float *feature = getHistFeature(mat);
+
+    for(int i =0; i < matchList.size(); i++)
+    {
+        if(compareCOSLike(matchList.at(i)->feature, feature, 256))
+        {
+            cv::imshow("matched",matchList.at(i)->mat);
+            cv::imshow("src",mat);
+            cv::waitKey();
+
+            delete matchList.at(i)->feature;
+            matchList.at(i)->matchNums = -1;
+            matchList.at(i)->feature = feature;
+
+            return true;
+        }
+    }
+
+    delete feature;
+
+    return false;
+}
+
+void CarTracker::excuteMatchList(QVector<CarInfo *> &matchList)
+{
+    for(QVector<CarInfo *>::Iterator it = matchList.begin(); it != matchList.end(); )
+    {
+        if((++((*it)->matchNums) ) == 5)
+        {
+            delete *it;
+            it = matchList.erase(it);
+
+            continue;
+        }
+
+        it++;
+    }
 }

@@ -83,6 +83,8 @@ std::vector<vector<float> > Detector::Detect(const cv::Mat& img) {
             else
                 result.push_back(d[6] * img.rows);
 
+            result.push_back(d[1]);
+
             results.push_back(result);
         }
 
