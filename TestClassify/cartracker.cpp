@@ -16,12 +16,9 @@ CarTracker::CarTracker()
     shapeExtract = nullptr;
     colorExtract = nullptr;
     logoExtract = nullptr;
-    plateExtract = nullptr;
+    //plateExtract = nullptr;
     carDetector = nullptr;
     truckDetector = nullptr;
-    motoShapeExtract = nullptr;
-    motoDetector = nullptr;
-    trainfo = nullptr;
 }
 
 CarTracker *CarTracker::getInstence()
@@ -43,17 +40,10 @@ CarTracker::~CarTracker()
         delete logoExtract;
     if(carDetector != nullptr)
         delete carDetector;
-    if(plateExtract != nullptr)
-        delete plateExtract;
+    //if(plateExtract != nullptr)
+    //    delete plateExtract;
     if(truckDetector != nullptr)
         delete truckDetector;
-    if(motoShapeExtract != nullptr)
-        delete motoShapeExtract;
-    if(motoDetector != nullptr)
-        delete motoDetector;
-    if(trainfo != nullptr)
-        delete trainfo;
-
     if(tracker != nullptr)
     {
         delete tracker;
@@ -91,77 +81,53 @@ std::vector<Prediction> CarTracker::getColor(const cv::Mat &img, int top_k)
     return colorExtract->singleImageCarFeatureExtract(img, top_k);
 }
 
-std::vector<Prediction> CarTracker::getMotoShape(const Mat &img, int top_k)
+//string CarTracker::getPlate(const Mat &img)
+//{
+//    if(plateExtract == nullptr)
+//    {
+//        qDebug() << "plateExtract init";
+
+//        const char *tagName = "CarPlate";
+//        string plateSvmTrainModel = util.getValue(tagName, "PlateSvmTrainModel").toStdString();
+//        string enTrainModel = util.getValue(tagName, "EnTrainModel").toStdString();
+//        string chTrainModel = util.getValue(tagName, "ChTrainModel").toStdString();
+
+//        plateExtract = new Lprs(plateSvmTrainModel, enTrainModel, chTrainModel);
+//    }
+//    return plateExtract->prosess(img);
+//}
+/*
+float *CarTracker::getSiftFeature(Mat &img)
 {
-    qDebug() << "motoShapeExtract init";
+        SiftDescriptorExtractor extractor;
+        vector<KeyPoint> keypoints;
+        cv::Mat des;
+        float *data = new float[128];
+        float *temp = data;
+        int step = 10; // 10 pixels spacing between kp's
 
-    if(motoShapeExtract == nullptr)
-        motoShapeExtract = new CarFeatureExtract("MotoShape");
-
-    return motoShapeExtract->singleImageCarFeatureExtract(img, top_k);
-}
-
-string CarTracker::getPlate(const Mat &img)
-{
-    if(plateExtract == nullptr)
-    {
-        qDebug() << "plateExtract init";
-
-        const char *tagName = "CarPlate";
-        string plateSvmTrainModel = util.getValue(tagName, "PlateSvmTrainModel").toStdString();
-        string enTrainModel = util.getValue(tagName, "EnTrainModel").toStdString();
-        string chTrainModel = util.getValue(tagName, "ChTrainModel").toStdString();
-
-        plateExtract = new Lprs(plateSvmTrainModel, enTrainModel, chTrainModel);
-    }
-    return plateExtract->prosess(img);
-}
-
-float* CarTracker::getSiftFeature(Mat img)
-{
-    SiftDescriptorExtractor extractor;
-    vector<KeyPoint> keypoints;
-    cv::Mat des;
-    float *data = new float[128];
-    float *temp = data;
-    int step = 10; // 10 pixels spacing between kp's
-
-    for (int y = step; y < img.rows-step; y += step){
-        for (int x = step; x < img.cols-step; x += step){
-            // x,y,radius
-            keypoints.push_back(KeyPoint(float(x), float(y), float(step)));
+        for (int y = step; y < src.rows-step; y += step){
+            for (int x = step; x < src.cols-step; x += step){
+                // x,y,radius
+                keypoints.push_back(KeyPoint(float(x), float(y), float(step)));
+            }
         }
-    }
 
-    extractor.compute(img, keypoints, des);
+        extractor.compute(img, keypoints, des);
 
-    for(int i = 0; i < des.cols; i++)
-    {
-        float max = 0.0;
-        for(int j = 0; j < des.rows; j++)
+        for(int i = 0; i < des.cols; i++)
         {
-            max=fabs(des.at<float>(j,i)) > max?fabs(des.at<float>(j,i)):max;
+            float max = 0.0;
+            for(int j = 0; j < des.rows; j++)
+            {
+                max=fabs(pcaDes.at<float>(j,i)) > max?fabs(pcaDes.at<float>(j,i)):max;
+            }
+            *(temp++) = max;
         }
-        *(temp++) = max;
-    }
 
-    return data;
+        return data;
 }
-
-void CarTracker::removeUselessCarHistCache(vector<CarHistCache> &chc)
-{
-    int size = chc.size();
-    for (int i = 0; i < size; i++)
-    {
-        if (!chc[i].isUpdate && chc[i].positionChange)
-        {
-            chc.erase(chc.begin() + i);
-            i--;
-            size--;
-        }
-    }
-}
-
+*/
 void CarTracker::getHist(Mat image, float hist[], int count)
 {
     if (image.channels() > 1)
@@ -179,12 +145,11 @@ void CarTracker::getHist(Mat image, float hist[], int count)
         hist[i] = histND.at<float>(i, 0);
 }
 
-
-void CarTracker::initialCarHistCache(int dealType,string shape, string color, cv::VideoCapture &capture, vector<CarHistCache> &chc)
+void CarTracker::initialCarHistCache(int dealType,string shape, string color)
 {
     Mat frame;
 
-    while (capture.read(frame))
+    while (captureForCompression.read(frame))
     {
         bool isPointFrame = false;
         vector<cv::Rect> &&cars = getCars(frame);
@@ -195,8 +160,8 @@ void CarTracker::initialCarHistCache(int dealType,string shape, string color, cv
 
             if (dealType == 1)
             {
-                auto dcolor = getColor(frame(*it).clone(), 2);
-                auto dshape = getShape(frame(*it).clone(), 2);
+                auto dcolor = colorExtract->singleImageCarFeatureExtract(frame(*it).clone());
+                auto dshape = shapeExtract->singleImageCarFeatureExtract(frame(*it).clone());
 
                 if (compareColor(dcolor, color)
                     && compareShape(dshape, shape))
@@ -260,19 +225,34 @@ void CarTracker::initialCarHistCache(int dealType,string shape, string color, cv
     }
 }
 
+void CarTracker::removeUselessCarHistCache()
+{
+    int size = chc.size();
+    for (int i = 0; i < size; i++)
+    {
+        if (!chc[i].isUpdate && chc[i].positionChange)
+        {
+            chc.erase(chc.begin() + i);
+            i--;
+            size--;
+        }
+    }
+}
+
 string CarTracker::carTrack(string videoFileName, string shape, string color, string logo, string plate)
 {
-    vector<CarHistCache> chc;
-    cv::VideoCapture capture(videoFileName);
-    capture.open(videoFileName);
+    shapeExtract = new CarFeatureExtract("CarShape");
+    colorExtract = new CarFeatureExtract("CarColor");
+    //cv::VideoCapture capture(videoFileName);
+    captureForCompression.open(videoFileName);
 
-    if (!capture.isOpened())
+    if (!captureForCompression.isOpened())
     {
         qDebug() << "capture not opened";
         return "";
     }
 
-    string outputVideoName = videoSavePath.toStdString() + "/" + QUuid::createUuid().toString().replace("}", "").replace("{", "").toStdString() + ".avi";
+    string outputVideoName = videoSavePath.toStdString() + "/" + "output_local.avi";
     VideoWriter writer;
 
     int frameRate = 25;
@@ -280,8 +260,8 @@ string CarTracker::carTrack(string videoFileName, string shape, string color, st
 
     if (!writer.isOpened())
     {
-        frameSize.width  = capture.get(CV_CAP_PROP_FRAME_WIDTH);
-        frameSize.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+        frameSize.width  = captureForCompression.get(CV_CAP_PROP_FRAME_WIDTH);
+        frameSize.height = captureForCompression.get(CV_CAP_PROP_FRAME_HEIGHT);
 
         if (!writer.open(outputVideoName, CV_FOURCC('D','I','V','X') , frameRate, frameSize, true))
         {
@@ -290,7 +270,7 @@ string CarTracker::carTrack(string videoFileName, string shape, string color, st
         }
     }
 
-    double rate = capture.get(CV_CAP_PROP_FPS);
+    double rate = captureForCompression.get(CV_CAP_PROP_FPS);
     cv::Mat frame;
     cv::namedWindow("Extracted Frame");
     int delay = rate;
@@ -311,9 +291,9 @@ string CarTracker::carTrack(string videoFileName, string shape, string color, st
 
     float currentFrameHist[256];  //当前帧的灰度直方图
 
-    initialCarHistCache(dealType,shape, color, capture, chc);
+    initialCarHistCache(dealType,shape,color);
 
-    while (capture.read(frame))
+    while (captureForCompression.read(frame))
     {
         //imshow("readImage",frame);
         //waitKey(1);
@@ -336,8 +316,8 @@ string CarTracker::carTrack(string videoFileName, string shape, string color, st
 
             if (dealType == 1)
             {
-                auto dcolor = getColor(frame(*it).clone(), 2);
-                auto dshape = getShape(frame(*it).clone(), 2);
+                auto dcolor = colorExtract->singleImageCarFeatureExtract(frame(*it).clone());
+                auto dshape = shapeExtract->singleImageCarFeatureExtract(frame(*it).clone());
 
                 if (compareColor(dcolor, color) && compareShape(dshape, shape))
                 {
@@ -377,7 +357,7 @@ string CarTracker::carTrack(string videoFileName, string shape, string color, st
             }
             else if (dealType == 2)
             {
-                auto dshape = getShape(frame(*it).clone(), 2);
+                auto dshape = shapeExtract->singleImageCarFeatureExtract(frame(*it).clone());
 
                 if (compareShape(dshape, shape))
                 {
@@ -417,7 +397,7 @@ string CarTracker::carTrack(string videoFileName, string shape, string color, st
             }
             else if (dealType == 3)
             {
-                auto dcolor = getColor(frame(*it).clone(), 2);
+                auto dcolor = colorExtract->singleImageCarFeatureExtract(frame(*it).clone());
 
                 if (compareColor(dcolor, color))
                 {
@@ -476,7 +456,7 @@ string CarTracker::carTrack(string videoFileName, string shape, string color, st
             writer.write(frame);
         }
 
-        removeUselessCarHistCache(chc);
+        removeUselessCarHistCache();
 
         if (cv::waitKey(delay) >= 0)
             break;
@@ -484,82 +464,14 @@ string CarTracker::carTrack(string videoFileName, string shape, string color, st
     }
 
     writer.release();
-    capture.release();
+    captureForCompression.release();
 
     return outputVideoName;
 }
-
-string CarTracker::motoTrack(string videoFileName, string shape)
-{
-    cv::VideoCapture capture(videoFileName);
-
-    if (!capture.isOpened())
-    {
-        qDebug() << "capture not opened";
-        return "";
-    }
-
-    string outputVideoName = videoSavePath.toStdString() + "/" + "output_local.avi";
-    VideoWriter writer;
-
-    int frameRate = 25;
-    Size frameSize;
-
-    if (!writer.isOpened())
-    {
-        frameSize.width  = capture.get(CV_CAP_PROP_FRAME_WIDTH);
-        frameSize.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-
-        if (!writer.open(outputVideoName, CV_FOURCC('D','I','V','X') , frameRate, frameSize, true))
-        {
-            qDebug() << "open writer error...";
-            return "";
-        }
-    }
-
-    double rate = capture.get(CV_CAP_PROP_FPS);
-    cv::Mat frame;
-    cv::namedWindow("Extracted Frame");
-    int delay = rate;
-
-    while (capture.read(frame))
-    {
-        bool isPointFrame = false;
-        vector<cv::Rect> &&motos = getMotos(frame);
-
-        for(vector<cv::Rect>::iterator it = motos.begin(); it != motos.end(); it++)
-        {
-            auto dshape = getMotoShape(frame(*it).clone(), 2);
-
-            if(compareShape(dshape, shape))
-            {
-                isPointFrame = true;
-                drawRect(frame, (*it));
-            }
-        }
-
-        cv::imshow("Extracted Frame", frame);
-
-        if(isPointFrame)
-        {
-            writer.write(frame);
-        }
-
-        if (cv::waitKey(delay) >= 0)
-            break;
-
-    }
-
-    writer.release();
-    capture.release();
-
-    return outputVideoName;
-}
-
+/*
 void CarTracker::truckTrack(string videoFileName, string startTime, string channelCode)
 {
     cv::VideoCapture capture(videoFileName);
-    QVector<CarInfo *> matchList;
 
     if (!capture.isOpened())
     {
@@ -572,33 +484,27 @@ void CarTracker::truckTrack(string videoFileName, string startTime, string chann
 
     cv::Mat frame;
     QDateTime time = QDateTime::fromTime_t(atoi(startTime.c_str()));
-    int cross = 3;
+    int cross = 100;
     int num = 0;
 
     while (capture.read(frame))
     {
-        time = time.addMSecs(usPerFrame);
-
         if((num++)%cross != 0)
         {
+            time.addMSecs(usPerFrame);
             continue;
         }
 
-        getTrucks(frame, QString::number(time.toTime_t()), QString(channelCode.c_str()), matchList);
-
-        excuteMatchList(matchList);
+        getTrucks(frame, QString::number(time.toTime_t()), QString(channelCode.c_str()));
     }
-
-    for(int i = 0; i < matchList.size(); i++)
-        delete matchList.at(i);
 
     capture.release();
 }
-
+*/
+/*
 void CarTracker::taxiTrack(string videoFileName, string startTime, string channelCode)
 {
     cv::VideoCapture capture(videoFileName);
-    QVector<CarInfo *> matchList;
 
     if (!capture.isOpened())
     {
@@ -608,88 +514,45 @@ void CarTracker::taxiTrack(string videoFileName, string startTime, string channe
 
     float rate = capture.get(CV_CAP_PROP_FPS);
     float usPerFrame = 1000/rate;
-    qDebug() << "uspf:" << usPerFrame;
 
     cv::Mat frame;
     QDateTime time = QDateTime::fromTime_t(atoi(startTime.c_str()));
-    int cross = 3;
+    int cross = 100;
     int num = 0;
 
     while (capture.read(frame))
     {
-        time = time.addMSecs(usPerFrame);
-
         if((num++)%cross != 0)
         {
+            time.addMSecs(usPerFrame);
             continue;
         }
 
         vector<cv::Rect> &&cars = getCars(frame);
-        bool isPointFrame = false;
 
         for(vector<cv::Rect>::iterator it = cars.begin(); it != cars.end(); it++)
         {
-            if(!checkMatchList(frame(*it), matchList) )
+            auto dcolor = colorExtract->singleImageCarFeatureExtract(frame(*it).clone());
+            auto dshape = shapeExtract->singleImageCarFeatureExtract(frame(*it).clone());
+
+            if(dcolor.at(0).first == "green" && dshape.at(0).first == "car")
             {
-                cv::Mat mat = frame(*it).clone();
+                QString imageUrl = imageSavePath + "/" + QUuid::createUuid().toString() + ".jpg";
+                cv::imwrite(imageUrl.toStdString(),frame(*it));
+                QString sql = "insert into carPic_info(channel_id,carPic_time,carPic_url,carPic_type) values('%1','%2','%3','%4')";
 
-                int width = (*it).width;
-                int height = (*it).height;
-
-                if(width > height)
-                    cv::copyMakeBorder(mat, mat, (width - height)/2,  (width - height)/2, 0, 0, cv::BORDER_CONSTANT, Scalar(0,0,0) );
-                else if(height > width)
-                    cv::copyMakeBorder(mat, mat, 0, 0, (height - width)/2,  (height - width)/2, cv::BORDER_CONSTANT, Scalar(0,0,0) );
-
-                auto dcolor = getColor(mat, 2);
-                auto dshape = getShape(mat, 2);
-
-                if(dcolor.at(0).first == "green" && (dshape.at(0).first == "sedan" || dshape.at(0).first == "hatchback"))
-                {
-                    cv::rectangle(frame, *it, Scalar(0, 0, 255), 2);
-                    cv::putText(frame,dcolor.at(0).first+"_"+dshape.at(0).first,cv::Point((*it).x-5,(*it).y),0,1,Scalar(0,0,255),2);
-                    isPointFrame = true;
-                }
-
-                CarInfo *info = new CarInfo;
-                info->boundingBox = *it;
-                info->matchNums = 0;
-                info->feature = getHistFeature(frame(*it));
-                info->mat = frame(*it).clone();
-
-                matchList.push_back(info);
-
-                cv::imshow("not match",frame(*it));
-                cv::waitKey();
+                dbManager.execQuery(sql.arg(QString(channelCode.c_str()) ).arg(QString::number(time.toTime_t()) ).arg(imageUrl).arg("taxi"));
             }
-            else
-            {
-                qDebug() << "------------------------match---------------------";
-            }
-        }
-
-        excuteMatchList(matchList);
-
-        if(isPointFrame)
-        {
-            QString imageUrl = imageSavePath + "/" + QUuid::createUuid().toString().replace("{", "").replace("}", "") + ".jpg";
-            cv::imwrite(imageUrl.toStdString(), frame);
-            QString sql = "insert into carPic_info(channel_id,carPic_time,carPic_url,carPic_type) values('%1','%2','%3','%4')";
-
-            dbManager.execQuery(sql.arg(QString(channelCode.c_str()) ).arg(QString::number(time.toTime_t()) ).arg(imageUrl).arg("taxi"));
         }
     }
 
-    for(int i = 0; i < matchList.size(); i++)
-        delete matchList.at(i);
-
     capture.release();
 }
-
+*/
+/*
 void CarTracker::areaCarTrack(string videoFileName, string startTime, string channelCode, string areas)
 {
     QStringList t = QString(areas.c_str()).split(",");
-    cout<< t.size() <<endl;
     vector<std::pair<cv::Point2f,cv::Point2f> > rectAreas;
 
     for(int i = 0; i < t.size()/4; i++)
@@ -718,23 +581,10 @@ void CarTracker::areaCarTrack(string videoFileName, string startTime, string cha
 
     while (capture.read(frame))
     {
-        time = time.addMSecs(usPerFrame);
-        bool isPointFrame = false;
-
         if((num++)%cross != 0)
         {
+            time.addMSecs(usPerFrame);
             continue;
-        }
-
-        for(int i = 0; i < rectAreas.size(); i++)
-        {
-            int tx1 = rectAreas.at(i).first.x*frame.cols;
-            int ty1 = rectAreas.at(i).first.y*frame.rows;
-            int tx2 = rectAreas.at(i).second.x*frame.cols;
-            int ty2 = rectAreas.at(i).second.y*frame.rows;
-
-            cv::Rect tRect(tx1, ty1, tx2-tx1, ty2-ty1);
-            cv::rectangle(frame, tRect, Scalar(255, 0, 0), 2);
         }
 
         vector<cv::Rect> &&cars = getCars(frame);
@@ -743,113 +593,18 @@ void CarTracker::areaCarTrack(string videoFileName, string startTime, string cha
         {
             if(inRect(*it,rectAreas, frame.cols, frame.rows))
             {
-                cv::rectangle(frame, *it, Scalar(0, 0, 255), 2);
-                isPointFrame = true;
+                QString imageUrl = imageSavePath + "/" + QUuid::createUuid().toString() + ".jpg";
+                cv::imwrite(imageUrl.toStdString(),frame(*it));
+                QString sql = "insert into carPic_info(channel_id,carPic_time,carPic_url,carPic_type) values('%1','%2','%3','%4')";
+
+                dbManager.execQuery(sql.arg(QString(channelCode.c_str()) ).arg(QString::number(time.toTime_t()) ).arg(imageUrl).arg("areacar"));
             }
-        }
-
-        if(isPointFrame)
-        {
-            QString imageUrl = imageSavePath + "/" + QUuid::createUuid().toString().replace("{", "").replace("}", "") + ".jpg";
-            cv::imwrite(imageUrl.toStdString(),frame);
-            QString sql = "insert into carPic_info(channel_id,carPic_time,carPic_url,carPic_type) values('%1','%2','%3','%4')";
-
-            dbManager.execQuery(sql.arg(QString(channelCode.c_str()) ).arg(QString::number(time.toTime_t()) ).arg(imageUrl).arg("areacar"));
         }
     }
 
     capture.release();
 }
-
-string CarTracker::trafficStatistics(string videoFileName, string areas)
-{
-    if(carDetector == nullptr)
-    {
-        qDebug() << "car detector init";
-
-        const char* tagName = "CarDetect";
-        string model_file   = util.getValue(tagName, "modelFilePath").toStdString();
-        string trained_file = util.getValue(tagName, "trainedFilePath").toStdString();
-        string mean_file    = util.getValue(tagName, "meanFilePath").toStdString();
-        string mean_value   = util.getValue(tagName, "meanValue").toStdString();
-        carThreshold = util.getValue(tagName, "ConfidenceThreshold").toFloat();
-
-        carDetector = new Detector(model_file, trained_file, mean_file, mean_value);
-    }
-
-    if(trainfo == nullptr)
-    {
-        trainfo = new Trainfo();
-    }
-
-    cv::VideoCapture capture(videoFileName);
-
-    if (!capture.isOpened())
-    {
-        qDebug() << "capture not opened";
-        return "";
-    }
-
-    int width  = capture.get(CV_CAP_PROP_FRAME_WIDTH);
-    int height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-
-
-    QStringList t = QString(areas.c_str()).split(",");
-
-    std::vector<vector<float> > rectboxes;
-
-    for(int i = 0; i < t.size()/4; i++)
-    {
-        auto points = getPoints(t.at(i*4).toFloat(),
-                                t.at(i*4+1).toFloat(),
-                                t.at(i*4+2).toFloat(),
-                                t.at(i*4+3).toFloat());
-        cv::Point2f p1 = points.first;
-        cv::Point2f p2 = points.second;
-
-        std::vector<float> rectboxtrans;
-        rectboxtrans.push_back(0);
-        rectboxtrans.push_back(p1.x*width);
-        rectboxtrans.push_back(p1.y*height);
-        rectboxtrans.push_back(p2.x*width);
-        rectboxtrans.push_back(p2.y*height);
-
-        rectboxes.push_back(rectboxtrans);
-    }
-
-    //    std::vector<float> rectboxtrans;
-    //    rectboxtrans.push_back(0);
-    //    rectboxtrans.push_back(800);
-    //    rectboxtrans.push_back(500);
-    //    rectboxtrans.push_back(800 + 260);
-    //    rectboxtrans.push_back(500 + 200);
-
-    //    std::vector<float> rectboxtrans_1;
-    //    rectboxtrans_1.push_back(0);
-    //    rectboxtrans_1.push_back(100);
-    //    rectboxtrans_1.push_back(500);
-    //    rectboxtrans_1.push_back(100 + 260);
-    //    rectboxtrans_1.push_back(500 + 200);
-
-    //    std::vector<float> rectboxtrans_2;
-    //    rectboxtrans_2.push_back(0);
-    //    rectboxtrans_2.push_back(460);
-    //    rectboxtrans_2.push_back(500);
-    //    rectboxtrans_2.push_back(460 + 260);
-    //    rectboxtrans_2.push_back(500 + 200);
-
-    //    std::vector<vector<float> > rectboxes;
-    //    rectboxes.push_back(rectboxtrans);
-    //    rectboxes.push_back(rectboxtrans_1);
-    //    rectboxes.push_back(rectboxtrans_2);
-
-    string outputVideoName = videoSavePath.toStdString() + "/" + "output_local.avi";
-    //路口画框
-    trainfo->CrossingDemo(carDetector, videoFileName, outputVideoName, rectboxes);
-
-    return outputVideoName;
-}
-
+*/
 pair<Point2f, Point2f> CarTracker::getPoints(float a1, float a2, float b1, float b2)
 {
     float temp;
@@ -868,8 +623,6 @@ pair<Point2f, Point2f> CarTracker::getPoints(float a1, float a2, float b1, float
         b2 = temp;
     }
 
-
-    std::cout << a1 << " " << a2 << "," << b1 << " " << b2 << "**************************************" <<endl;
     return std::make_pair(cv::Point2f(a1, a2), cv::Point2f(b1, b2));
 }
 
@@ -895,11 +648,6 @@ bool CarTracker::inRect(Rect rect, vector<pair<Point2f, Point2f> > rectAreas, in
     return false;
 }
 
-QString CarTracker::getImageSavePath()
-{
-    return imageSavePath;
-}
-
 vector<Rect> CarTracker::getCars(Mat &img)
 {
     vector<Rect> results;
@@ -913,7 +661,7 @@ vector<Rect> CarTracker::getCars(Mat &img)
         string trained_file = util.getValue(tagName, "trainedFilePath").toStdString();
         string mean_file    = util.getValue(tagName, "meanFilePath").toStdString();
         string mean_value   = util.getValue(tagName, "meanValue").toStdString();
-        carThreshold = util.getValue(tagName, "ConfidenceThreshold").toFloat();
+        confidenceThreshold = util.getValue(tagName, "ConfidenceThreshold").toFloat();
 
         carDetector = new Detector(model_file, trained_file, mean_file, mean_value);
     }
@@ -923,7 +671,7 @@ vector<Rect> CarTracker::getCars(Mat &img)
 
     for (int i = 0; i < detections.size(); ++i) {
         const vector<float> &d = detections[i];
-        if (d[0] >= carThreshold) {
+        if (d[0] >= confidenceThreshold) {
 
             int x=(d[1]-pad > 0)?(d[1]-pad):0;
             int y=(d[2]-pad > 0)?(d[2]-pad):0;
@@ -937,49 +685,9 @@ vector<Rect> CarTracker::getCars(Mat &img)
 
     return results;
 }
-
-vector<Rect> CarTracker::getMotos(Mat &img)
+/*
+void CarTracker::getTrucks(Mat &img, QString time, QString channelCode)
 {
-    vector<Rect> results;
-
-    if(motoDetector == nullptr)
-    {
-        qDebug() << "moto detector init";
-
-        const char* tagName = "MotoDetect";
-        string model_file   = util.getValue(tagName, "modelFilePath").toStdString();
-        string trained_file = util.getValue(tagName, "trainedFilePath").toStdString();
-        string mean_file    = util.getValue(tagName, "meanFilePath").toStdString();
-        string mean_value   = util.getValue(tagName, "meanValue").toStdString();
-        motoThreshold = util.getValue(tagName, "ConfidenceThreshold").toFloat();
-
-        motoDetector = new Detector(model_file, trained_file, mean_file, mean_value);
-    }
-
-    int pad=10;
-    std::vector<vector<float> > detections = motoDetector->Detect(img);
-
-    for (int i = 0; i < detections.size(); ++i) {
-        const vector<float> &d = detections[i];
-        if (d[0] >= motoThreshold) {
-
-            int x=(d[1]-pad > 0)?(d[1]-pad):0;
-            int y=(d[2]-pad > 0)?(d[2]-pad):0;
-            int width=(d[3]+pad < img.cols)?(d[3]-d[1]+pad):(img.cols-d[1]);
-            int height=(d[4]+pad < img.rows)?(d[4]-d[2]+pad):(img.rows-d[2]);
-
-            cv::Rect rect(x, y, width, height);
-            results.push_back(rect);
-        }
-    }
-
-    return results;
-}
-
-void CarTracker::getTrucks(Mat &img, QString time, QString channelCode, QVector<CarInfo *> &matchList)
-{
-    bool isPointFrame = false;
-
     if(truckDetector == nullptr)
     {
         qDebug() << "truck detector init";
@@ -989,20 +697,17 @@ void CarTracker::getTrucks(Mat &img, QString time, QString channelCode, QVector<
         string trained_file = util.getValue(tagName, "trainedFilePath").toStdString();
         string mean_file    = util.getValue(tagName, "meanFilePath").toStdString();
         string mean_value   = util.getValue(tagName, "meanValue").toStdString();
-        truckThreshold = util.getValue(tagName, "ConfidenceThreshold").toFloat();
-
-        qDebug() << model_file.c_str() << trained_file.c_str() << mean_value.c_str() << mean_file.c_str() << truckThreshold << "ssssssss";
+        confidenceThreshold = util.getValue(tagName, "ConfidenceThreshold").toFloat();
 
         truckDetector = new Detector(model_file, trained_file, mean_file, mean_value);
     }
 
     int pad=10;
-
     std::vector<vector<float> > detections = truckDetector->Detect(img);
 
     for (int i = 0; i < detections.size(); ++i) {
         const vector<float>& d = detections[i];
-        if (d[0] >= truckThreshold && d[5] == 1) {
+        if (d[0] >= confidenceThreshold) {
 
             int x=(d[1]-pad > 0)?(d[1]-pad):0;
             int y=(d[2]-pad > 0)?(d[2]-pad):0;
@@ -1010,42 +715,15 @@ void CarTracker::getTrucks(Mat &img, QString time, QString channelCode, QVector<
             int height=(d[4]+pad < img.rows)?(d[4]-d[2]+pad):(img.rows-d[2]);
 
             cv::Rect rect(x, y, width, height);
+            QString imageUrl = imageSavePath + "/" + QUuid::createUuid().toString() + ".jpg";
+            cv::imwrite(imageUrl.toStdString(), img(rect));
+            QString sql = "insert into carPic_info(channel_id,carPic_time,carPic_url,carPic_type) values('%1',%2,'%3','%4')";
 
-            if(!checkMatchList(img(rect), matchList) )
-            {
-                cv::rectangle(img, rect, Scalar(0, 0, 255), 2);
-                isPointFrame = true;
-
-                CarInfo *info = new CarInfo;
-                info->boundingBox = rect;
-                info->matchNums = 0;
-                info->feature = getHistFeature(img(rect));
-                info->mat = img(rect).clone();
-
-                matchList.push_back(info);
-
-                cv::imshow("not match",img(rect));
-                cv::waitKey();
-            }
-            else
-            {
-                qDebug() << "------------------------match---------------------";
-            }
+            dbManager.execQuery(sql.arg(channelCode).arg(time).arg(imageUrl).arg("truck"));
         }
     }
-
-
-    if(isPointFrame)
-    {
-        QString imageUrl = imageSavePath + "/" + QUuid::createUuid().toString().replace("{", "").replace("}", "") + ".jpg";
-        cv::imwrite(imageUrl.toStdString(), img);
-        QString sql = "insert into carPic_info(channel_id,carPic_time,carPic_url,carPic_type) values('%1',%2,'%3','%4')";
-
-        dbManager.execQuery(sql.arg(channelCode).arg(time).arg(imageUrl).arg("truck"));
-    }
-
 }
-
+*/
 bool CarTracker::compareCOSLike(float *t1, float *t2, int count)
 {
     float dotSum = 0.0f;
@@ -1059,11 +737,7 @@ bool CarTracker::compareCOSLike(float *t1, float *t2, int count)
     if(modeT1 == 0 || modeT2 == 0)
         return false;
     else
-    {
-        double d = acos(dotSum/(sqrt(fabs(modeT1) )*sqrt(fabs(modeT2) ) ) );
-        std::cout << d << std::endl;
-        return ( d <= 0.2);
-    }
+        return (acos(dotSum/(sqrt(fabs(modeT1) )*sqrt(fabs(modeT2) ) ) ) <= 0.1);
 }
 
 bool CarTracker::compareShape(std::vector<Prediction> &result,string shape)
@@ -1092,76 +766,4 @@ bool CarTracker::compareColor(std::vector<Prediction> &result, string color)
     }
 
     return false;
-}
-
-float* CarTracker::getHistFeature(Mat image)
-{
-    if (image.channels() > 1)
-        cvtColor(image, image, COLOR_BGR2GRAY);
-
-    cv::Mat histogram;
-    const int histSize = 256;
-    float range[] = {0, 255};
-    const float *ranges[] = {range};
-    const int channels = 0;
-
-    cv::calcHist(&image, 1, &channels, cv::Mat(), histogram, 1, &histSize, &ranges[0], true, false);
-
-    float *h = (float*)histogram.data;
-    float *hh = new float[256];
-
-    if (h) {
-        for (int i = 0; i < 256; ++i) {
-            hh[i] = h[i];
-        }
-    }
-
-    return hh;
-}
-
-bool CarTracker::checkMatchList(cv::Mat mat, QVector<CarInfo *> &matchList)
-{
-    if(matchList.size() == 0)
-    {
-        std::cout << "empty list" << std::endl;
-        return false;
-    }
-
-    float *feature = getHistFeature(mat);
-
-    for(int i =0; i < matchList.size(); i++)
-    {
-        if(compareCOSLike(matchList.at(i)->feature, feature, 256))
-        {
-            cv::imshow("matched",matchList.at(i)->mat);
-            cv::imshow("src",mat);
-            cv::waitKey();
-
-            delete matchList.at(i)->feature;
-            matchList.at(i)->matchNums = -1;
-            matchList.at(i)->feature = feature;
-
-            return true;
-        }
-    }
-
-    delete feature;
-
-    return false;
-}
-
-void CarTracker::excuteMatchList(QVector<CarInfo *> &matchList)
-{
-    for(QVector<CarInfo *>::Iterator it = matchList.begin(); it != matchList.end(); )
-    {
-        if((++((*it)->matchNums) ) == 5)
-        {
-            delete *it;
-            it = matchList.erase(it);
-
-            continue;
-        }
-
-        it++;
-    }
 }

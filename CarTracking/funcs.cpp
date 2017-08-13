@@ -44,15 +44,16 @@ QString carTrack(QString videoFileName, QString id, QString shape, QString color
 {
     qDebug() << "----------------------------carTrack-----------------------------";
     qDebug() << videoFileName << id << shape << color;
-//    videoMutex.lock();
-//    CarTracker *c = CarTracker::getInstence();
-//    QString fileName = c->carTrack(videoFileName.toStdString(), shape.toStdString(), color.toStdString()).c_str();
-//    QString sql = "update video_track_info set video_before_url = '%1',video_after_url = '%2' where video_track_id = %3";
-//    dbManager.execQuery(sql.arg(videoFileName).arg(fileName).arg(id));
-//    videoMutex.unlock();
-return "";
-//    qDebug() << "done";
-//    return fileName;
+
+    videoMutex.lock();
+    CarTracker *c = CarTracker::getInstence();
+    QString fileName = c->carTrack(videoFileName.toStdString(), shape.toStdString(), color.toStdString()).c_str();
+    QString sql = "update video_track_info set video_before_url = '%1',video_after_url = '%2' where video_track_id = %3";
+    dbManager.execQuery(sql.arg(videoFileName).arg(fileName).arg(id));
+    videoMutex.unlock();
+    qDebug() << "done";
+
+    return fileName;
 }
 
 
@@ -61,6 +62,7 @@ QString motoTrack(QString videoFileName, QString id, QString shape)
 {
     qDebug() << "----------------------------motoTrack-----------------------------";
     qDebug() << videoFileName << id << shape;
+
 //    videoMutex.lock();
 //    CarTracker *c = CarTracker::getInstence()
 //    QString fileName = c->motoTrack(videoFileName.toStdString(), shape.toStdString()).c_str();
@@ -77,6 +79,7 @@ void truckDetect(QString videoFileName, QString startTime, QString channelCode)
 {
     qDebug() << "----------------------------truckTrack-----------------------------";
     qDebug() << videoFileName << startTime << channelCode;
+
     videoMutex.lock();
     CarTracker *c = CarTracker::getInstence();
     c->truckTrack(videoFileName.toStdString(), startTime.toStdString(), channelCode.toStdString());
@@ -88,6 +91,7 @@ void taxiDetect(QString videoFileName, QString startTime, QString channelCode)
 {
     qDebug() << "----------------------------taxiTrack-----------------------------";
     qDebug() << videoFileName << startTime << channelCode;
+
     videoMutex.lock();
     CarTracker *c = CarTracker::getInstence();
     c->taxiTrack(videoFileName.toStdString(), startTime.toStdString(), channelCode.toStdString());
@@ -99,6 +103,7 @@ void areaCarDetect(QString videoFileName, QString startTime, QString channelCode
 {
     qDebug() << "----------------------------areaTrack-----------------------------";
     qDebug() << videoFileName << startTime << channelCode << areas;
+
     videoMutex.lock();
     CarTracker *c = CarTracker::getInstence();
     c->areaCarTrack(videoFileName.toStdString(), startTime.toStdString(), channelCode.toStdString(), areas.toStdString());

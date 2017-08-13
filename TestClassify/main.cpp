@@ -268,6 +268,7 @@ bool compareCOSLike(float *t1, float *t2, int count)
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/ml/ml.hpp>
 #include <QDateTime>
+#include"cartracker.h"
 
 vector<Rect> getCars(Mat &img)
 {
@@ -582,31 +583,30 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
 
     ::google::InitGoogleLogging("");
-    //CarShape Classify (by change parameter tag)
-    //testClassify("/home/zg/1T/samples/0","CarShape",true);
 
-    //CarColor Classify (by change parameter tag)
+    //------------------CarShape Classify (by change parameter tag)
+    //testClassify("/home/zg/1T/samples/0","MotoShape",true);
+
+    //------------------CarColor Classify (by change parameter tag)
     //testClassify("/home/zg/1T/samples/0","CarColor");
 
-    //MotoShape Classify vaild
+    //------------------MotoShape Classify vaild
     //testClassify("/home/zg/1T/test","MotoShape");
 
-    //CarShape and CarColor Classify
+    //------------------CarShape and CarColor Classify
     //testCarAllFeature("/home/zg/1T/samples/0", 2);
 
-    //    Detect (by change parameter tag)
-//        testDetect("/home/zg/1T/videos/download/1502350723-ee945449-8fea-4654-9868-eab636b307b8.nsf","TruckDetect");
+    //------------------Detect (by change parameter tag)
+    //testDetect("/home/zg/1T/videos/download/1502350723-ee945449-8fea-4654-9868-eab636b307b8.nsf","TruckDetect");
 
-    //Detect and Classfiy
-    //    testDetectAndClassify("/home/zg/1T/videos/download/1502344105-9e6fa29d-cadd-4590-80b7-2609d1606ca4.nsf","CarDetect","CarShape",true,"CarColor",false);
+    //------------------Detect and Classfiy
+    //testDetectAndClassify("/home/zg/1T/videos/download/1502344105-9e6fa29d-cadd-4590-80b7-2609d1606ca4.nsf","CarDetect","CarShape",true,"CarColor",false);
 
-    //taxiTrack("/home/zg/1T/videos/download/1502261462-189e4556-b4b5-45f2-aa23-15d62ed9f8d9.nsf", "1502586938", "0");
-    truckTrack("/home/zg/1T/videos/download/1502350723-ee945449-8fea-4654-9868-eab636b307b8.nsf", "1502586938", "0");
-
-//    cv::Mat m1 = cv::imread("/home/zg/1T/test2/5.jpg");
-//    cv::Mat m2 = cv::imread("/home/zg/1T/test2/a.jpg");
-
-//    std::cout<<compareCOSLike(getSiftFeature(m1),getSiftFeature(m2),128)<<std::endl;
+    //2017/8/13 new add
+    CarTracker testCarTrack;
+    //string carTrack(string videoFileName, string shape, string color, string logo="", string plate="");
+    string videoPath = "/home/zg/1T/videos/视频2/贡井区S207道树德门口-北向南卡口-车道1/510303000200000762-00010001-20170606070000-20170606080000-510303-01.nsf";
+   testCarTrack.carTrack(videoPath,"suv","white");
 
     return a.exec();
 }

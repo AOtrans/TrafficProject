@@ -20,6 +20,15 @@ typedef struct CarInfo
     }
 }CarInfo;
 
+typedef struct CarHistCache
+{
+    float backFrameCarHist[256];   //之前对比的灰度直方图
+    cv::Rect backFrameCarposition;
+    bool isUpdate;
+    bool positionChange;
+    int num;
+}CarHistCache;
+
 class CarTracker
 {
 public:
@@ -59,6 +68,11 @@ public:
 
     bool checkMatchList(cv::Mat mat, QVector<CarInfo *> &matchList);
     void excuteMatchList(QVector<CarInfo *> &matchList);
+
+    //from Lai DaoLiang
+    void initialCarHistCache(int dealType, string shape, string color, cv::VideoCapture &capture, vector<CarHistCache> &chc);
+    void getHist(Mat image, float hist[], int count);
+    void removeUselessCarHistCache(vector<CarHistCache> &chc);
 private:
     bool compareShape(std::vector<Prediction> &result, string shape);
     bool compareColor(std::vector<Prediction> &result, string shape);
