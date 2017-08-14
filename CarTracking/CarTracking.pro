@@ -81,3 +81,5 @@ LIBS += -lcudart -lcublas -lcurand -lcudnn
 LIBS +=-lopencv_calib3d -lopencv_contrib -lopencv_core -lopencv_features2d -lopencv_flann -lopencv_gpu -lopencv_highgui \
 -lopencv_imgproc -lopencv_legacy -lopencv_nonfree -lopencv_ocl -lopencv_photo -lopencv_stitching -lopencv_superres \
 -lopencv_ts -lopencv_video -lopencv_videostab -lopencv_ml -lopencv_objdetect -lopencv_highgui -lopencv_core -lopencv_imgproc
+#ffmpeg
+LIBS += -lavutil -lavcodec -lavdevice -lavfilter -lavformat -lswresample
